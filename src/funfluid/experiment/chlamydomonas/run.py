@@ -44,7 +44,3 @@ class MainProgress:
         with open(self.config.results_json, "w") as fr:
             fr.write(json.dumps(result))
         logger.info("all is done")
-
-
-global_config = GlobalConfig(path_root="/Volumes/ChenDisk/experiment")
-MainProgress(global_config).run(debug=False)
