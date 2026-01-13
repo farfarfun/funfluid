@@ -99,7 +99,7 @@ class ParticleDetect(BaseCache):
         self, background: BackGround, contain: BackContain, image, step, ext_json
     ) -> List[Particle]:
         ext_json["background_uid"] = background.uid
-        image = np.abs(background.back_image.astype(np.int) - image.astype(np.int))
+        image = np.abs(background.back_image.astype(np.int32) - image.astype(np.int32))
         image = image.astype(np.uint8)
 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # 转为灰度值图

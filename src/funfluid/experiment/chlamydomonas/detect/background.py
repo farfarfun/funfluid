@@ -29,14 +29,14 @@ class BackGround:
         if self.count == 0:
             return True
 
-        res1 = np.abs(self.back_image.astype(np.int) - image.astype(np.int))
+        res1 = np.abs(self.back_image.astype(np.int32) - image.astype(np.int32))
         res = abs(np.sum(res1 > (image.max() - image.min()) * s1))
         if 1.0 * res / image.shape[0] / image.shape[1] < s2:
             return True
         return False
 
     def score(self, image):
-        res1 = np.abs(self.back_image.astype(np.int) - image.astype(np.int))
+        res1 = np.abs(self.back_image.astype(np.int32) - image.astype(np.int32))
         return np.sum(res1 > 30)
 
     def __str__(self):
