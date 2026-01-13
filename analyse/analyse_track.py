@@ -10,9 +10,9 @@ class Project(BaseProject):
         track = FlowTrack()
         for index, file in enumerate(self.orientation_files):
             if index == 0:
-                ellipse = EllipseTrack(a=10, b=10, df=self._load(file, 0), color='r')
+                ellipse = EllipseTrack(a=10, b=10, df=self._load(file, 0), color="r")
             elif index == 1:
-                ellipse = EllipseTrack(a=10, b=10, df=self._load(file, 0), color='b')
+                ellipse = EllipseTrack(a=10, b=10, df=self._load(file, 0), color="b")
             else:
                 continue
 
@@ -29,11 +29,12 @@ class Project(BaseProject):
 
         track.plot(
             # min_step=2, step=500,
-            min_step=1000, step=50,
+            min_step=1000,
+            step=50,
             # min_step=80000, step=1500, max_step=130000,
             # title=self.project_name + ',step={step}',
-            title=r'$AR=0.2$',
-            gif_path=f'{self.output_path()}/{self.project_name}-track.gif'
+            title=r"$AR=0.2$",
+            gif_path=f"{self.output_path()}/{self.project_name}-track.gif",
         )
 
 
