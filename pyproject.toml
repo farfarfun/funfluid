@@ -4,7 +4,7 @@ version = "1.0.5"
 description = "funfluid"
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = [ "matplotlib>=3.7.5", "numpy>=1.24.4", "pandas>=2.0.3", "scipy>=1.10.1",]
+dependencies = [ "matplotlib>=3.7.5", "numpy>=1.24.4", "pandas>=2.0.3", "scipy>=1.10.1", "numba>=0.58",]
 [[project.authors]]
 name = "牛哥"
 email = "niuliangtao@qq.com"
@@ -28,3 +28,6 @@ Releases = "https://github.com/farfarfun/funfluid/releases"
 
 [tool.setuptools]
 license-files = []
+
+[dependency-groups]
+dev = ["pytest>=7.0"]
