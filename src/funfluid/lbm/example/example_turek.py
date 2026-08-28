@@ -1,8 +1,8 @@
 import math
 import time
 
-from notelbm import Lattice, Shape
-from notelbm.core.shape import generate_shape
+from funfluid.lbm import Lattice, Shape
+from funfluid.lbm.core.shape import generate_shape
 
 ###############################################
 # LBM Turek benchmark

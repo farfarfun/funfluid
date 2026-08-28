@@ -2,7 +2,7 @@ import math
 import time
 
 import numpy as np
-from notelbm import Lattice, Shape
+from funfluid.lbm import Lattice, Shape
 
 ###############################################
 # LBM poiseuille with obstacle

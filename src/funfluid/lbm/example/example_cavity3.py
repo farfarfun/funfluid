@@ -1,7 +1,7 @@
 import math
 import time
 
-from notelbm import Lattice
+from funfluid.lbm import Lattice
 
 ###############################################
 # LBM lid-driven cavity

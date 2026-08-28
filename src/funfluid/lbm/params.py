@@ -2,7 +2,7 @@ import datetime
 import math
 import os
 
-from notelbm import Lattice
+from funfluid.lbm import Lattice
 
 ###############################################
 # LBM solver
