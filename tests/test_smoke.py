@@ -7,8 +7,7 @@
 已知问题（发现但未修复，超出本次冒烟测试范围）：
 - `funfluid.lbm.params` 顶层脚本在 import 时会直接执行仿真参数计算、
   打印日志并创建 `./results/` 目录（副作用较重），因此不纳入本轻量冒烟
-  测试范围（此前该模块还错误地 `from notelbm import Lattice`，`notelbm`
-  是历史遗留/命名残留包名，已修正为 `from funfluid.lbm import Lattice`）。
+  测试范围。
 - `funfluid.lbm.obs_array` 顶层脚本 `from .core.shapes import *`，模块名
   拼写错误（应为 `shape`），import 即报错，因此不纳入测试。
 - `funfluid.experiment.chlamydomonas.plot.core` / `plot.property` 属于
