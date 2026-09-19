@@ -5,27 +5,23 @@
 在不依赖真实网络、数据库、云凭据、GPU 或长时间仿真的情况下可以被构造/调用。
 
 已知问题（发现但未修复，超出本次冒烟测试范围）：
-- `funfluid.lbm.params` 顶层脚本在 import 时会直接执行仿真参数计算、
-  打印日志并创建 `./results/` 目录（副作用较重），因此不纳入本轻量冒烟
-  测试范围。
-- `funfluid.lbm.obs_array` 顶层脚本 `from .core.shapes import *`，模块名
-  拼写错误（应为 `shape`），import 即报错，因此不纳入测试。
 - `funfluid.experiment.chlamydomonas.plot.core` / `plot.property` 属于
   写死本地路径（`/Volumes/ChenDisk/...`）的一次性脚本，`plot.property`
   中还调用了未定义的 `analyse(...)`，import 即报错，因此不纳入测试。
 - `funfluid.experiment.chlamydomonas.*`（base.base / detect.* /
   progress.video_progress / analyse.analyse / run）依赖 `cv2`
-  (opencv-python)、`tqdm`、`imageio`，这些依赖未在 pyproject.toml 中声明，
-  且属于较重的图像处理依赖，不在本次“轻量冒烟测试”范围内新增，相关测试
-  以 pytest.importorskip 方式跳过。
-- `funfluid.lbm.core.buff.Buff.mv_avg()` 在 `self.it > 5` 时会用
-  `self.avg3_buff[-5]` 取值，但 `avg3_buff` 是每次调用 `mv_avg()` 追加一个
-  元素（而不是每次 `add()` 追加），如果 `add()` 调用次数多于 `mv_avg()`
-  调用次数，会触发 `IndexError: index -5 is out of bounds`。测试中只在
-  安全范围内调用，避免触发该 bug。
+  (opencv-python)、`tqdm`、`imageio`。这些依赖已在 pyproject.toml 的
+  `[project.optional-dependencies].video` extra 中声明（`pip install
+  funfluid[video]`），但属于较重的图像处理依赖，不在本次“轻量冒烟测试”
+  范围内新增安装，相关测试以 pytest.importorskip 方式跳过。
 - `funfluid.tecplot.utils.connect` 依赖专有软件 Tecplot 360 的 Python
-  binding (`tecplot` 包)，需要真实的 Tecplot 许可证/安装，无法在普通 CPU
-  环境冒烟测试，使用 pytest.importorskip 跳过。
+  binding（PyPI 包名 `pytecplot`，import 名 `tecplot`），已在
+  `[project.optional-dependencies].tecplot` extra 中声明，但需要真实的
+  Tecplot 360 安装与许可证，无法在普通 CPU 环境冒烟测试，使用
+  pytest.importorskip 跳过。
+- `funfluid.lbm.obs_array` 是一个可直接运行的示例脚本（阵列障碍物绕流），
+  import 时会直接执行完整仿真循环，耗时且非本包的公开 API，因此不纳入
+  导入测试范围（`src/funfluid/lbm/example/*.py` 同理）。
 """
 
 import os
@@ -33,7 +29,6 @@ import subprocess
 import sys
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # 1. 顶层 & 常用子模块导入
@@ -59,6 +54,7 @@ def test_import_top_level_package():
         "funfluid.lbm.core.buff",
         "funfluid.lbm.core.shape",
         "funfluid.lbm.core.lattice",
+        "funfluid.lbm.params",
         "funfluid.simulate",
         "funfluid.simulate.utils",
         "funfluid.simulate.utils.tecplot",
@@ -80,14 +76,14 @@ def test_chlamydomonas_cv_stack_not_in_scope():
     """
     funfluid.experiment.chlamydomonas 下大部分模块 (base.base / detect.* /
     progress.video_progress / analyse.analyse / run) 依赖 cv2 / tqdm /
-    imageio，pyproject.toml 未声明这些依赖。这里不强行安装重量级的
+    imageio，这些依赖已声明为 `funfluid[video]` extra。这里不强行安装重量级的
     opencv 等依赖，改为跳过并说明原因。
     """
     pytest.importorskip(
         "cv2",
         reason=(
             "funfluid.experiment.chlamydomonas 的视频/图像检测模块依赖 "
-            "opencv-python(cv2)/tqdm/imageio，未在 pyproject.toml 中声明，"
+            "opencv-python(cv2)/tqdm/imageio，已声明为 funfluid[video] extra，"
             "超出本次轻量冒烟测试范围，跳过。"
         ),
     )
@@ -96,7 +92,8 @@ def test_chlamydomonas_cv_stack_not_in_scope():
 def test_tecplot_utils_connect_needs_real_tecplot_license():
     """
     funfluid.tecplot.utils.connect 依赖专有软件 Tecplot 360 的 Python
-    binding，需要真实安装与许可证才能使用，无法在普通 CPU 环境中冒烟测试。
+    binding（`funfluid[tecplot]` extra，PyPI 包名 pytecplot），需要真实安装
+    与许可证才能使用，无法在普通 CPU 环境中冒烟测试。
     """
     pytest.importorskip(
         "tecplot",
@@ -155,15 +152,16 @@ def test_pickle_dataframe_cache_round_trip(tmp_path):
     assert list(result["b"]) == [4, 5]
 
 
-def test_base_cache_unimplemented_methods_raise():
+def test_base_cache_unimplemented_methods_raise_not_implemented_error():
+    """抽象方法未实现时应抛出 NotImplementedError（领域相关类型），而不是裸 Exception。"""
     from funfluid.common.base.cache import BaseCache
 
     cache = BaseCache(filepath="/tmp/does-not-matter.bin")
-    with pytest.raises(Exception):
+    with pytest.raises(NotImplementedError):
         cache.execute()
-    with pytest.raises(Exception):
+    with pytest.raises(NotImplementedError):
         cache._read()
-    with pytest.raises(Exception):
+    with pytest.raises(NotImplementedError):
         cache._save()
 
 
@@ -189,6 +187,27 @@ def test_global_config_get_result_path():
     result = gc.get_result_path("/data/root/videos/sample.mp4")
     assert result is not None
     assert result.cache_dir == "/data/root/results/sample"
+
+
+def test_contain_detect_find_contain_missing_raises_lookup_error():
+    """
+    ContainDetect.find_contain 在找不到对应 uid 时应抛出带上下文的
+    LookupError，而不是裸 `raise Exception(...)`。
+    """
+    cv2 = pytest.importorskip(
+        "cv2",
+        reason="ContainDetect 所在模块顶层导入 cv2，为 funfluid[video] extra，跳过",
+    )
+    del cv2
+
+    from funfluid.experiment.chlamydomonas.detect.contain import ContainDetect
+
+    class _FakeConfig:
+        cache_dir = "/tmp/funfluid-contain-detect-test"
+
+    detect = ContainDetect(config=_FakeConfig())
+    with pytest.raises(LookupError, match="missing-uid"):
+        detect.find_contain("missing-uid")
 
 
 # ---------------------------------------------------------------------------
@@ -228,6 +247,36 @@ def test_generate_shape_square(tmp_path):
     assert os.path.exists(os.path.join(output_dir, "smoke_square.csv"))
 
 
+def test_generate_shape_invalid_type_raises_value_error(tmp_path):
+    """非法 shape_type 应抛出 ValueError，而不是 print + exit() 终止解释器。"""
+    from funfluid.lbm.core.shape import generate_shape
+
+    with pytest.raises(ValueError, match="shape_type"):
+        generate_shape(
+            n_pts=4,
+            position=[0, 0],
+            shape_type="triangle",
+            shape_size=0.5,
+            shape_name="bad",
+            n_sampling_pts=10,
+            output_dir=str(tmp_path) + os.sep,
+        )
+
+
+def test_generate_cylinder_pts_requires_at_least_four_points():
+    from funfluid.lbm.core.shape import generate_cylinder_pts
+
+    with pytest.raises(ValueError):
+        generate_cylinder_pts(2)
+
+
+def test_generate_square_pts_requires_exactly_four_points():
+    from funfluid.lbm.core.shape import generate_square_pts
+
+    with pytest.raises(ValueError):
+        generate_square_pts(5)
+
+
 # ---------------------------------------------------------------------------
 # 6. funfluid.lbm.core.buff.Buff
 # ---------------------------------------------------------------------------
@@ -240,11 +289,36 @@ def test_buff_add_and_mv_avg():
     for value in (1.0, 2.0, 3.0):
         buff.add(value)
 
-    # 注意：仅在 self.it <= 5 的安全范围内调用 mv_avg，
-    # 否则会触发 Buff.mv_avg 中的已知 IndexError（见模块顶部说明）。
     obs, growth = buff.mv_avg()
     assert isinstance(obs, float)
     assert growth == 0.0
+
+
+def test_buff_mv_avg_does_not_crash_when_add_outpaces_mv_avg():
+    """
+    回归测试：此前 `mv_avg()` 按 `self.it`（add() 调用次数）判断是否已有
+    5 个历史观测值，但实际用来取值的 `avg3_buff` 是按 mv_avg() 调用次数
+    增长的。当 add() 被调用的次数多于 mv_avg() 时，两者不同步，会触发
+    `IndexError: index -5 is out of bounds`。现改为直接判断 avg3_buff
+    自身长度，此处验证同样的调用模式不再崩溃。
+    """
+    from funfluid.lbm.core.buff import Buff
+
+    buff = Buff(name="drag", dt=1.0, obs_cv_ct=1e-2, obs_cv_nb=5, output_dir="./")
+
+    # 模拟 add() 调用次数（self.it）远多于 mv_avg() 调用次数的场景：
+    # 十次迭代里，每次都 add()，但只在偶数步调用一次 mv_avg()。
+    for step in range(10):
+        buff.add(float(step))
+        if step % 2 == 0:
+            obs, growth = buff.mv_avg()
+            assert isinstance(obs, float)
+            assert isinstance(growth, float)
+
+    assert buff.it == 10
+    # mv_avg 被调用 5 次（step=0,2,4,6,8），avg3_buff 初始长度 2，
+    # 故此时长度为 7，触发过一次 growth 计算而不会抛出 IndexError。
+    assert len(buff.avg3_buff) == 7
 
 
 # ---------------------------------------------------------------------------
@@ -277,7 +351,68 @@ def test_lattice_construct_and_single_step(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# 8. CLI 入口
+# 8. funfluid.lbm.params（此前在 import 时就有副作用，现收敛到函数里）
+# ---------------------------------------------------------------------------
+
+
+def test_import_lbm_params_has_no_side_effects(tmp_path, monkeypatch):
+    """
+    回归测试：此前 `funfluid.lbm.params` 在 import 时会直接计算仿真参数、
+    打印日志并创建 `./results/` 目录。现在这些逻辑被收敛到
+    `build_default_lattice()` 函数中，import 本身不应产生任何文件系统副作用。
+    """
+    monkeypatch.chdir(tmp_path)
+
+    import importlib
+
+    import funfluid.lbm.params as params_module
+
+    importlib.reload(params_module)
+
+    assert not os.path.exists(tmp_path / "results")
+    assert hasattr(params_module, "build_default_lattice")
+
+
+def test_build_default_lattice_returns_lattice(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    from funfluid.lbm.core.lattice import Lattice
+    from funfluid.lbm.params import build_default_lattice
+
+    lattice = build_default_lattice(results_dir=str(tmp_path / "results") + "/")
+
+    assert isinstance(lattice, Lattice)
+    assert os.path.exists(tmp_path / "results")
+
+
+# ---------------------------------------------------------------------------
+# 9. funfluid.simulate.utils.tecplot
+# ---------------------------------------------------------------------------
+
+
+def test_read_tecplot_point_parses_minimal_point_file(tmp_path):
+    from funfluid.simulate.utils.tecplot import read_tecplot_point
+
+    tecplot_file = tmp_path / "sample.dat"
+    tecplot_file.write_text(
+        'VARIABLES = "x", "y"\n'
+        "ZONE N=3, F=POINT\n"
+        "0.0 0.0\n"
+        "1.0 0.0\n"
+        "0.0 1.0\n"
+    )
+
+    df = read_tecplot_point(str(tecplot_file))
+
+    # 注意：列名解析不会去除变量名两侧的引号/空格（VARIABLES 行原样切分），
+    # 这是既有行为，此处按实际行为断言，不在本次修复范围内改变解析逻辑。
+    assert list(df.columns) == ['"x"', ' "y"']
+    assert len(df) == 3
+    assert df['"x"'].tolist() == [0.0, 1.0, 0.0]
+
+
+# ---------------------------------------------------------------------------
+# 10. CLI 入口
 # ---------------------------------------------------------------------------
 
 
@@ -304,6 +439,7 @@ def test_python_executable_can_import_funfluid_as_subprocess():
         [sys.executable, "-c", "import funfluid; print('ok')"],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0
     assert "ok" in result.stdout
