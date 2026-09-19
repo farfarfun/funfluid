@@ -1,5 +1,3 @@
-import logging
-
 from funfluid.experiment.chlamydomonas.analyse.analyse import TrackAnalyse, MSDCalculate
 from funfluid.experiment.chlamydomonas.base.base import VideoBase
 from funfluid.experiment.chlamydomonas.base.globalconfig import VideoSplit
@@ -7,8 +5,6 @@ from funfluid.experiment.chlamydomonas.detect.background import BackGroundDetect
 from funfluid.experiment.chlamydomonas.detect.contain import ContainDetect
 from funfluid.experiment.chlamydomonas.detect.particle import ParticleDetect
 from funfluid.utils.log import logger
-
-logger.setLevel(logging.INFO)
 
 
 class VideoProgress:
@@ -61,6 +57,11 @@ class VideoProgress:
                     "msd_path": self.analyse_msd.filepath,
                 }
             )
-        except Exception as e:
-            print(f"main_error {self.base_video.video_paths[0]}")
+        except Exception as exc:
+            # 批处理场景下单个视频失败不应中断整批任务，但要保留完整上下文
+            # （视频路径 + 原始异常堆栈），并在结果中显式标记失败，不能悄悄吞掉。
+            logger.exception(
+                f"处理视频失败: {self.base_video.video_paths[0]}: {exc}"
+            )
+            ext_json["error"] = str(exc)
         return ext_json

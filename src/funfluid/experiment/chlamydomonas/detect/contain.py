@@ -1,6 +1,5 @@
 import json
 import math
-from typing import List
 
 import cv2
 import numpy as np
@@ -87,11 +86,11 @@ class ContainDetect(CSVDataFrameCache):
         super(ContainDetect, self).__init__(
             filepath=f"{self.config.cache_dir}/detect_contains.csv", *args, **kwargs
         )
-        self.contain_list: List[BackContain] = []
+        self.contain_list: list[BackContain] = []
 
     def process_contain_image(
         self, background: BackGround, debug=False
-    ) -> List[BackContain]:
+    ) -> list[BackContain]:
         gray = cv2.cvtColor(background.back_image, cv2.COLOR_BGR2GRAY)  # 转为灰度值图
         ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_TRIANGLE)  # 转为二值图
         contours, hierarchy = cv2.findContours(
@@ -150,7 +149,10 @@ class ContainDetect(CSVDataFrameCache):
         for contain in self.contain_list:
             if contain.uid == uid:
                 return contain
-        raise Exception(f"cannot find contain {uid}")
+        raise LookupError(
+            f"未找到 uid={uid} 对应的 contain，当前已检测 "
+            f"{len(self.contain_list)} 个 contain"
+        )
 
     def _parse(self, df: DataFrame, *args, **kwargs):
         self.df = df

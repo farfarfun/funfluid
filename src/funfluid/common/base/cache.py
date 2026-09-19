@@ -22,16 +22,22 @@ class BaseCache:
         return os.path.exists(self.filepath)
 
     def _execute(self, *args, **kwargs):
-        raise Exception("not implement.")
+        raise NotImplementedError(
+            f"{type(self).__name__}._execute 未实现，子类必须重写该方法"
+        )
 
     def execute(self, *args, **kwargs):
         return self._execute(*args, **kwargs)
 
     def _read(self, *args, **kwargs):
-        raise Exception("not implement.")
+        raise NotImplementedError(
+            f"{type(self).__name__}._read 未实现，子类必须重写该方法"
+        )
 
     def _save(self, *args, **kwargs):
-        raise Exception("not implement.")
+        raise NotImplementedError(
+            f"{type(self).__name__}._save 未实现，子类必须重写该方法"
+        )
 
     def read(self, overwrite=False, *args, **kwargs):
         if overwrite:
