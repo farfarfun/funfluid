@@ -1,6 +1,5 @@
 import os
 import pickle
-from typing import List
 
 import cv2
 import imageio
@@ -93,11 +92,11 @@ class ParticleDetect(BaseCache):
             filepath=f"{self.config.cache_dir}/detect_particles.pkl", *args, **kwargs
         )
         self.particle_csv_path = f"{self.config.cache_dir}/detect_particles.csv"
-        self.particle_list: List[Particle] = []
+        self.particle_list: list[Particle] = []
 
     def process_particle_image(
         self, background: BackGround, contain: BackContain, image, step, ext_json
-    ) -> List[Particle]:
+    ) -> list[Particle]:
         ext_json["background_uid"] = background.uid
         image = np.abs(background.back_image.astype(np.int32) - image.astype(np.int32))
         image = image.astype(np.uint8)

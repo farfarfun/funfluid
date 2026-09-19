@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
 from functools import partial
-from typing import List
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -183,7 +182,7 @@ class EllipseTrack:
 class FlowTrack:
     def __init__(self, canvas: Canvas = None):
         self.canvas = canvas
-        self.ellipses: List[EllipseTrack] = []
+        self.ellipses: list[EllipseTrack] = []
         self.lns = []
 
     def set_canvas(self, canvas):

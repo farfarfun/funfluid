@@ -1,5 +1,4 @@
 import pickle
-from typing import List
 
 import numpy as np
 
@@ -49,7 +48,7 @@ class BackGroundDetect(BaseCache):
             filepath=f"{config.cache_dir}/detect_backgrounds.pkl", *args, **kwargs
         )
         self.config = config
-        self.background_list: List[BackGround] = []
+        self.background_list: list[BackGround] = []
 
     def process_background_nearest(
         self, image, debug=False, *args, **kwargs

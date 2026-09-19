@@ -2,7 +2,7 @@ import math
 import time
 
 from .core.lattice import *
-from .core.shapes import *
+from .core.shape import *
 
 ###############################################
 # LBM poiseuille with array of obstacles

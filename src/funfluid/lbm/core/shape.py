@@ -8,6 +8,8 @@ import numpy as np
 import PIL
 import scipy.special
 
+from funfluid.utils.log import logger
+
 
 class Shape:
     def __init__(
@@ -199,9 +201,7 @@ class Shape:
         keep_numbering = kwargs.get("keep_numbering", False)
 
         if not os.path.isfile(filename):
-            print("I could not find csv file: " + filename)
-            print("Exiting now")
-            exit()
+            raise FileNotFoundError(f"找不到形状控制点 csv 文件: {filename}")
 
         self.reset()
         sfile = filename.split(".")
@@ -342,8 +342,7 @@ def trim_white(filename):
 def generate_cylinder_pts(n_pts):
     """生成圆柱体点"""
     if n_pts < 4:
-        print("Not enough points to generate cylinder")
-        exit()
+        raise ValueError(f"生成圆柱体控制点至少需要 4 个点，实际传入 n_pts={n_pts}")
 
     pts = np.zeros([n_pts, 2])
     ang = 2.0 * math.pi / n_pts
@@ -356,8 +355,7 @@ def generate_cylinder_pts(n_pts):
 def generate_square_pts(n_pts):
     """生成正方形点"""
     if n_pts != 4:
-        print("You should have n_pts = 4 for square")
-        exit()
+        raise ValueError(f"生成正方形控制点要求 n_pts=4，实际传入 n_pts={n_pts}")
 
     pts = np.zeros([n_pts, 2])
     pts[0, :] = [1.0, 1.0]
@@ -420,14 +418,38 @@ def generate_bezier_curve(
 
 
 def generate_shape(
-    n_pts, position, shape_type, shape_size, shape_name, n_sampling_pts, output_dir
-):
-    # Generate shape
+    n_pts: int,
+    position: list[float],
+    shape_type: str,
+    shape_size: float,
+    shape_name: str,
+    n_sampling_pts: int,
+    output_dir: str,
+) -> "Shape":
+    """按给定形状类型生成障碍物形状，写出预览图与控制点 csv。
+
+    Args:
+        n_pts: 控制点数量。
+        position: 形状中心位置 `[x, y]`。
+        shape_type: 形状类型，取值 `"cylinder"` / `"square"` / `"random"`。
+        shape_size: 形状尺寸（控制点坐标的缩放系数）。
+        shape_name: 形状名称，同时作为输出文件名前缀。
+        n_sampling_pts: 每段控制点之间的采样点数量。
+        output_dir: 输出目录，预览图（`.png`）与控制点（`.csv`）写入此处。
+
+    Returns:
+        构建完成的 `Shape` 实例。
+
+    Raises:
+        ValueError: `shape_type` 不在支持的取值范围内。
+    """
     # Check input
     if shape_type not in ["cylinder", "square", "random"]:
-        print("Error in shape_type")
-        print('Authorized values are "cylinder", "square" and "random"')
-        exit()
+        raise ValueError(
+            f'不支持的 shape_type: {shape_type!r}，'
+            '仅支持 "cylinder"、"square"、"random"'
+        )
+    logger.debug(f"generate_shape: shape_type={shape_type}, n_pts={n_pts}")
 
     # Select shape type
     if shape_type == "cylinder":
@@ -442,13 +464,11 @@ def generate_shape(
         ctrl_pts = generate_square_pts(n_pts)
         ctrl_pts[:, :] *= shape_size
 
-    elif shape_type == "random":
+    else:  # shape_type == "random"
         radius = np.random.uniform(low=0.8, high=1.0, size=n_pts)
         edgy = np.random.uniform(low=0.45, high=0.55, size=n_pts)
         ctrl_pts = np.random.rand(n_pts, 2)
         ctrl_pts[:, :] *= shape_size
-    else:
-        raise Exception("error")
 
     # Initialize and build shape
     shape = Shape(
