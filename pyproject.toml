@@ -5,10 +5,16 @@ build-backend = "hatchling.build"
 [project]
 name = "funfluid"
 version = "1.0.6"
-description = "funfluid"
+description = "基于格子玻尔兹曼方法（LBM）的流体仿真与显微视频粒子追踪工具库"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [ "matplotlib>=3.7.5", "numpy>=1.24.4", "pandas>=2.0.3", "scipy>=1.10.1", "numba>=0.58",]
+license = "MIT"
+dependencies = [ "matplotlib>=3.7.5", "numpy>=1.24.4", "pandas>=2.0.3", "scipy>=1.10.1", "numba>=0.58", "farlog>=1.1.7",]
+
+[project.optional-dependencies]
+video = ["opencv-python>=4.8", "tqdm>=4.65", "imageio>=2.31"]
+tecplot = ["pytecplot>=1.5"]
+
 [[project.authors]]
 name = "牛哥"
 email = "niuliangtao@qq.com"
@@ -31,7 +37,7 @@ Repository = "https://github.com/farfarfun/funfluid"
 Releases = "https://github.com/farfarfun/funfluid/releases"
 
 [tool.setuptools]
-license-files = []
+license-files = ["LICENSE"]
 
 [dependency-groups]
 dev = ["pytest>=7.0"]
