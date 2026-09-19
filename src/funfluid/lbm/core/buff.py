@@ -50,7 +50,11 @@ class Buff:
         self.obs = self.p_avg(self.avg3_buff, it_s, it_e)
 
         growth = 0.0
-        if self.it > 5:
+        # 注意：avg3_buff 按 mv_avg() 调用次数增长，而不是按 add() 调用
+        # 次数（self.it）增长，两者在调用方不同步时并不相等。之前按 self.it
+        # 判断会在 avg3_buff 长度不足 5 时触发 IndexError，这里改为直接
+        # 判断 avg3_buff 自身的长度。
+        if len(self.avg3_buff) > 5:
             growth = (self.avg3_buff[-1] - self.avg3_buff[-5]) / (4.0 * self.dt)
 
             if abs(growth) < self.obs_cv_ct:
