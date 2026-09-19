@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import pickle
 
@@ -8,6 +7,7 @@ from tqdm import tqdm
 
 from funfluid.common.base.cache import BaseCache
 from funfluid.experiment.chlamydomonas.base.globalconfig import VideoSplit
+from funfluid.utils.log import logger
 
 
 class VideoBase(BaseCache):
@@ -75,7 +75,7 @@ class VideoBase(BaseCache):
         self.frame_count = step
 
     def print(self):
-        logging.info(f"config-second:{self.start_second}->{self.end_second}")
+        logger.info(f"config-second:{self.start_second}->{self.end_second}")
 
     def to_json(self):
         return {

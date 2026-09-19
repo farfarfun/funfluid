@@ -425,8 +425,7 @@ class Lattice(Condition):
 
     def add_obstacle(self, polygon, tag):
         """Add obstacle"""
-        # Initial print
-        print("### Obstacle ", str(tag))
+        logger.info(f"### Obstacle {tag}")
 
         # Compute polygon bnds
         poly_bnds = np.zeros(4)
@@ -456,8 +455,7 @@ class Lattice(Condition):
                         self.lattice[i, j] = tag
                         obstacle = np.append(obstacle, np.array([[i, j]]), axis=0)
 
-        # Printings
-        print("# " + str(obstacle.shape[0]) + " locations in obstacle")
+        logger.info(f"# {obstacle.shape[0]} locations in obstacle")
 
         # Build boundary of obstacle, i.e. 1st layer of fluid
         for k in range(len(obstacle)):
@@ -477,8 +475,7 @@ class Lattice(Condition):
         # Some cells were counted multiple times, unique-sort them
         boundary = np.unique(boundary, axis=0)
 
-        # Printings
-        print("# " + str(boundary.shape[0]) + " locations on boundary")
+        logger.info(f"# {boundary.shape[0]} locations on boundary")
 
         # Compute lattice-boundary distances if IBB is True
         if self.IBB:
@@ -501,15 +498,11 @@ class Lattice(Condition):
                 if self.lattice[i, j] == tag:
                     area += self.dx**2
 
-        # Printings
-        print("# Area = " + "{:f}".format(area))
+        logger.info(f"# Area = {area:f}")
 
         # Add obstacle
         obs = Obstacle(polygon, area, boundary, ibb, tag)
         self.obstacles.append(obs)
-
-        # Last print
-        print("")
 
     def lattice_coords(self, i, j):
         """Get lattice coordinates from integers"""
@@ -674,14 +667,12 @@ class Lattice(Condition):
         if self.stop == "it":
             if self.it > self.it_max:
                 self.compute = True
-                print("\n")
-                print("# Computation ended: it>it_max")
+                logger.info("# Computation ended: it>it_max")
 
         if self.stop == "obs":
             if self.drag_buff.obs_cv and self.lift_buff.obs_cv:
                 self.compute = True
-                print("\n")
-                print("# Computation ended: converged")
+                logger.info("# Computation ended: converged")
 
         self.it += 1
         return self.compute
@@ -689,17 +680,10 @@ class Lattice(Condition):
     def it_printings(self):
         """Iteration printings"""
         if self.stop == "it":
-            print("# it = " + str(self.it) + " / " + str(self.it_max), end="\r")
+            logger.info(f"# it = {self.it} / {self.it_max}")
         if self.stop == "obs":
             str_d = "{:10.6f}".format(self.drag_buff.obs)
             str_l = "{:10.6f}".format(self.lift_buff.obs)
-
-            print(
-                "# it = "
-                + str(self.it)
-                + ", avg drag ="
-                + str_d
-                + ", avg lift ="
-                + str_l,
-                end="\r",
+            logger.info(
+                f"# it = {self.it}, avg drag ={str_d}, avg lift ={str_l}"
             )

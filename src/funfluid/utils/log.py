@@ -1,9 +1,5 @@
-import logging
+"""funfluid 统一日志入口，基于 farlog，不在 import 时配置全局 handler。"""
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(process)d-%(processName)s - %(filename)s-%(funcName)s[line:%(lineno)d] - %(levelname)s: %(message)s",
-)
+from farlog import getLogger
 
-logger = logging.getLogger("funfluid")
-logger.setLevel(logging.DEBUG)
+logger = getLogger("funfluid")

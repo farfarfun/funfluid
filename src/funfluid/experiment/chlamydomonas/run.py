@@ -1,12 +1,9 @@
 import json
-import logging
 import os
 
 from funfluid.experiment.chlamydomonas.base.globalconfig import GlobalConfig
 from funfluid.experiment.chlamydomonas.progress.video_progress import VideoProgress
 from funfluid.utils.log import logger
-
-logger.setLevel(logging.INFO)
 
 
 class MainProgress:
