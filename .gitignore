@@ -57,6 +57,13 @@ coverage.xml
 *.log
 local_settings.py
 db.sqlite3
+*.db
+
+# 生成物/运行时产物/大文件（SPEC.md §10）
+*.rar
+.run/
+logs/
+.vscode/
 
 # Flask stuff:
 instance/

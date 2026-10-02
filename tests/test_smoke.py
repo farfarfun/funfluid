@@ -5,9 +5,6 @@
 在不依赖真实网络、数据库、云凭据、GPU 或长时间仿真的情况下可以被构造/调用。
 
 已知问题（发现但未修复，超出本次冒烟测试范围）：
-- `funfluid.experiment.chlamydomonas.plot.core` / `plot.property` 属于
-  写死本地路径（`/Volumes/ChenDisk/...`）的一次性脚本，`plot.property`
-  中还调用了未定义的 `analyse(...)`，import 即报错，因此不纳入测试。
 - `funfluid.experiment.chlamydomonas.*`（base.base / detect.* /
   progress.video_progress / analyse.analyse / run）依赖 `cv2`
   (opencv-python)、`tqdm`、`imageio`。这些依赖已在 pyproject.toml 的
@@ -66,6 +63,8 @@ def test_import_top_level_package():
         "funfluid.experiment.chlamydomonas",
         "funfluid.experiment.chlamydomonas.base",
         "funfluid.experiment.chlamydomonas.base.globalconfig",
+        "funfluid.experiment.chlamydomonas.plot.core",
+        "funfluid.experiment.chlamydomonas.plot.property",
     ],
 )
 def test_import_public_submodules(module_name):
@@ -189,6 +188,49 @@ def test_global_config_get_result_path():
     assert result.cache_dir == "/data/root/results/sample"
 
 
+def test_video_split_parse_path_collects_all_split_segments(tmp_path, monkeypatch):
+    """回归测试：分段录制的视频（`*.split1.avi`、`*.split2.avi`...）
+    应从首段聚合出全部存在的分段文件。"""
+    from funfluid.experiment.chlamydomonas.base.globalconfig import VideoSplit
+
+    monkeypatch.chdir(tmp_path)
+    base = tmp_path / "sample"
+    (tmp_path / f"{base.name}.split1.avi").write_bytes(b"")
+    (tmp_path / f"{base.name}.split2.avi").write_bytes(b"")
+
+    vs = VideoSplit()
+    ok = vs.parse_path(str(base) + ".split1.avi")
+    assert ok is True
+    assert vs.video_name == base.name
+    assert vs.video_paths == [
+        str(base) + ".split1.avi",
+        str(base) + ".split2.avi",
+    ]
+
+
+def test_video_split_parse_path_rejects_non_first_segment():
+    """边界场景：传入非首段分段文件（如 `*.split2.avi`）应返回 False，
+    调用方需要始终从 split1 开始解析整组分段。"""
+    from funfluid.experiment.chlamydomonas.base.globalconfig import VideoSplit
+
+    vs = VideoSplit()
+    ok = vs.parse_path("/data/videos/sample.split2.avi")
+    assert ok is False
+
+
+def test_video_split_to_json_round_trip():
+    from funfluid.experiment.chlamydomonas.base.globalconfig import VideoSplit
+
+    vs = VideoSplit()
+    vs.parse_path("/data/videos/sample.mp4")
+    vs.parse_other()
+
+    data = vs.to_json()
+    assert data["video_name"] == "sample"
+    assert data["video_path"] == "/data/videos/sample.mp4"
+    assert data["cache_dir"] == "/data/videos/sample"
+
+
 def test_contain_detect_find_contain_missing_raises_lookup_error():
     """
     ContainDetect.find_contain 在找不到对应 uid 时应抛出带上下文的
@@ -208,6 +250,45 @@ def test_contain_detect_find_contain_missing_raises_lookup_error():
     detect = ContainDetect(config=_FakeConfig())
     with pytest.raises(LookupError, match="missing-uid"):
         detect.find_contain("missing-uid")
+
+
+# ---------------------------------------------------------------------------
+# 4b. funfluid.experiment.chlamydomonas.plot（此前 import 即崩溃，现已修复）
+# ---------------------------------------------------------------------------
+
+
+def test_plot_core_plot_particle_csv_reads_file(tmp_path):
+    """回归测试：此前 `plot.core` 在 import 时直接读取写死的本机路径并
+    print，import 本身不应有任何副作用；读取逻辑现收敛到
+    `plot_particle_csv(csv_path)` 函数中，显式传参才会执行 I/O。"""
+    from funfluid.experiment.chlamydomonas.plot.core import plot_particle_csv
+
+    csv_path = tmp_path / "particle.csv"
+    csv_path.write_text("x,y\n1,2\n3,4\n")
+
+    df = plot_particle_csv(str(csv_path))
+
+    assert list(df.columns) == ["x", "y"]
+    assert len(df) == 2
+
+
+def test_plot_core_plot_particle_csv_missing_file_raises():
+    """失败路径：传入不存在的 csv 路径应抛出 FileNotFoundError。"""
+    from funfluid.experiment.chlamydomonas.plot.core import plot_particle_csv
+
+    with pytest.raises(FileNotFoundError):
+        plot_particle_csv("/tmp/funfluid-does-not-exist/particle.csv")
+
+
+def test_plot_property_analyse_property_not_implemented():
+    """回归测试：此前 `plot.property` 在 import 时直接调用未定义的
+    `analyse(...)`，import 即 NameError；现收敛为显式的
+    `analyse_property(video_path)` 函数，未实现时抛出
+    NotImplementedError 而不是让 import 崩溃。"""
+    from funfluid.experiment.chlamydomonas.plot.property import analyse_property
+
+    with pytest.raises(NotImplementedError):
+        analyse_property("/tmp/does-not-matter.avi")
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## [未发布]
+
+### 修复
+
+- `funfluid.experiment.chlamydomonas.plot.core` / `plot.property` 此前在 import 时
+  直接读取写死的本机路径（`/Volumes/ChenDisk/...`）、执行 `print`，`plot.property`
+  还调用了未定义的 `analyse(...)`，import 即报错；现收敛为带类型标注/中文 docstring
+  的函数（`plot_particle_csv`、`analyse_property`），import 不再有副作用，脚本逻辑
+  置于 `if __name__ == "__main__":` 下
+- `.gitignore` 补充 `*.db`、`*.rar`、`.run/`、`logs/`、`.vscode/`（SPEC.md §10 要求的最低覆盖范围）
+
+### 变更
+
+- `funfluid.lbm.core.lattice`（`Obstacle`、`BaseDefine.__init__`、`macro`、
+  `equilibrium`、`collision_stream`）与
+  `funfluid.experiment.chlamydomonas.base.globalconfig`（`VideoSplit`、
+  `GlobalConfig` 及其公开方法）补齐类型标注与中文 docstring
+- `funfluid.lbm.core.lattice`、`funfluid.lbm.core.shape` 中的英文注释/英文
+  一行 docstring 统一翻译为中文，保留 Zou-He/TRT/IBB 等领域术语与代码标识符
+
 ## [1.0.6] - 2026-09-19
 
 ### 新增
