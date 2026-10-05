@@ -2,18 +2,29 @@
 
 基于格子玻尔兹曼方法（LBM）的流体仿真工具库，同时提供显微视频中衣藻（chlamydomonas）粒子检测与轨迹分析的实验代码。
 
+## 环境要求
+
+- Python >= 3.10
+- 核心运行依赖（随包自动安装）：numpy、scipy、pandas、matplotlib、numba、farlog
+- numba 会在首次调用 LBM 核心计算时做 JIT 编译，第一步迭代比后续慢属正常现象
+
 ## 安装
 
 ```bash
 pip install funfluid
 ```
 
-视频/图像检测相关功能（依赖 opencv-python、tqdm、imageio）与 Tecplot 数据对接功能为可选依赖，按需安装：
+视频/图像检测与 Tecplot 数据对接功能为可选依赖，按需安装：
 
 ```bash
-pip install "funfluid[video]"     # 显微视频粒子检测
-pip install "funfluid[tecplot]"   # Tecplot 数据读写
+pip install "funfluid[video]"     # 显微视频粒子检测，依赖 opencv-python、tqdm、imageio
+pip install "funfluid[tecplot]"   # Tecplot 数据读写，依赖 pytecplot
 ```
+
+可选依赖的额外前提：
+
+- `[video]`：opencv-python 为预编译轮子，无需本机 OpenCV；处理的视频编码需为本机 FFmpeg 后端可解的格式
+- `[tecplot]`：pytecplot 只是客户端，还需本机安装 **Tecplot 360（含有效 license）** 并开启 PyTecplot 连接，否则 `funfluid.tecplot` 下的功能不可用
 
 ## 最小示例
 
@@ -22,7 +33,7 @@ pip install "funfluid[tecplot]"   # Tecplot 数据读写
 ```python
 from funfluid.lbm.core.lattice import Lattice
 
-lattice = Lattice(nx=4, ny=4, tau_lbm=0.8)
+lattice = Lattice(nx=4, ny=4, tau_lbm=0.8, results_dir="./results/")
 
 lattice.equilibrium()
 lattice.collision_stream()
@@ -32,6 +43,9 @@ print(lattice.u.shape)  # (2, 4, 4) 速度场
 print(lattice.rho.shape)  # (4, 4) 密度场
 ```
 
+> `Lattice` 构造时会在 `results_dir` 下按时间戳创建输出目录，并在工作目录下写入 `logs/funfluid.log`，
+> 需要换位置时通过 `results_dir` 参数指定。
+
 更完整的圆柱绕流、Turek 基准等仿真示例见 `src/funfluid/lbm/example/`。
 
 ## 模块概览
@@ -40,6 +54,16 @@ print(lattice.rho.shape)  # (4, 4) 密度场
 - `funfluid.simulate`：椭圆粒子仿真与 Tecplot 数据读取工具
 - `funfluid.tecplot`：Tecplot 360 连接与模板工具（需安装 `funfluid[tecplot]`）
 - `funfluid.experiment.chlamydomonas`：显微视频中衣藻粒子的检测、追踪与 MSD 分析（需安装 `funfluid[video]`）
+
+## 开发
+
+```bash
+uv sync                  # 安装开发依赖（pytest、ruff）
+uv run pytest tests -q   # 运行测试
+uv run ruff check .      # 代码检查
+uv run ruff format .     # 代码格式化
+uv build                 # 构建 sdist 与 wheel
+```
 
 ---
 

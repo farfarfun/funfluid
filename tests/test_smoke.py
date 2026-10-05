@@ -24,6 +24,7 @@
 import os
 import subprocess
 import sys
+import tempfile
 
 import pytest
 
@@ -518,3 +519,217 @@ def test_python_executable_can_import_funfluid_as_subprocess():
     )
     assert result.returncode == 0
     assert "ok" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# 11. 本轮审计修复的回归测试（farfarfun/todo-list#833）
+# ---------------------------------------------------------------------------
+
+
+def _build_small_lattice(tmp_path, **kwargs):
+    """构造一个小尺寸 Lattice，输出目录落在 tmp_path 下，避免污染工作区。"""
+    from funfluid.lbm.core.lattice import Lattice
+
+    params = {"nx": 6, "ny": 6, "results_dir": f"{tmp_path}/results/"}
+    params.update(kwargs)
+    return Lattice(**params)
+
+
+def test_lattice_compute_flag_starts_true_and_check_stop_turns_it_off(tmp_path):
+    """compute 表示「继续迭代」，初值必须为 True，达到 it_max 后才变 False。
+
+    此前初值为 False 且 check_stop 在结束时置 True，方向写反，
+    导致所有 `while lat.compute:` 主循环一次都进不去。
+    """
+    lattice = _build_small_lattice(tmp_path, stop="it", it_max=3)
+
+    assert lattice.compute is True
+
+    # check_stop 先判断 it > it_max 再自增，因此前 it_max + 1 次都应继续
+    for _ in range(4):
+        assert lattice.check_stop() is True
+    # it 递增到超过 it_max 后应停止
+    assert lattice.check_stop() is False
+    assert lattice.compute is False
+
+
+def test_lattice_results_dir_is_configurable(tmp_path):
+    """results_dir 应可通过关键字覆盖，而不是硬编码 ./results/。"""
+    lattice = _build_small_lattice(tmp_path)
+
+    assert lattice.results_dir == f"{tmp_path}/results/"
+    assert os.path.isdir(lattice.output_dir)
+    assert os.path.isdir(lattice.png_dir)
+
+
+def test_zou_he_top_wall_writes_density_on_top_row():
+    """顶壁边界条件必须把密度写在 j=ly 行，而不是 j=0 行。"""
+    import numpy as np
+
+    from funfluid.lbm.core.speed_nb import nb_zou_he_top_wall_velocity
+
+    nx, ny = 5, 4
+    ly = ny - 1
+    u = np.zeros((2, nx, ny))
+    u_top = np.zeros((2, nx))
+    rho = np.full((nx, ny), -1.0)  # 哨兵值，便于区分哪一行被写过
+    g = np.zeros((9, nx, ny))
+    # 只在顶行放置非零分布函数；底行保持全 0
+    g[:, :, ly] = 1.0
+
+    nb_zou_he_top_wall_velocity(nx - 1, ly, u, u_top, rho, g)
+
+    # 顶壁速度为 0 时，rho[:, ly] = g0 + g1 + g2 + 2*(g3+g5+g7) = 1*3 + 2*3 = 9
+    assert np.allclose(rho[:, ly], 9.0)
+    # 底行不应被顶壁边界条件改写
+    assert np.allclose(rho[:, 0], -1.0)
+
+
+def test_build_default_lattice_applies_computed_parameters(tmp_path):
+    """build_default_lattice 必须真的把推导出的参数传进 Lattice。
+
+    此前用 19 个位置参数调用 `Lattice(*args, **kwargs)`，而 BaseDefine
+    只读 kwargs，位置参数被整体丢弃，返回的是全默认参数的 Lattice。
+    """
+    from funfluid.lbm.params import build_default_lattice
+
+    lattice = build_default_lattice(results_dir=f"{tmp_path}/results/")
+
+    # 默认值是 nx=100 / dpi=100 / Re_lbm=100.0；推导值与之不同
+    assert lattice.nx == 600
+    assert lattice.ny == 600
+    assert lattice.dpi == 200
+    assert lattice.name == "lattice"
+    assert lattice.results_dir == f"{tmp_path}/results/"
+    assert lattice.Re_lbm != 100.0
+
+
+def test_background_nearest_returns_minimum_score_background():
+    """process_background_nearest 应返回 score 最小的背景，而不是最后一个。"""
+    import numpy as np
+
+    pytest.importorskip(
+        "cv2",
+        reason="funfluid.experiment.chlamydomonas.detect 依赖 funfluid[video] extra",
+    )
+    from funfluid.experiment.chlamydomonas.base.base import VideoBase
+    from funfluid.experiment.chlamydomonas.detect.background import (
+        BackGround,
+        BackGroundDetect,
+    )
+
+    class _FakeConfig:
+        cache_dir = "."
+        video_width = 4
+        video_height = 4
+
+    detect = BackGroundDetect.__new__(BackGroundDetect)
+    detect.filepath = "unused.pkl"
+    detect.config = _FakeConfig()
+    assert VideoBase is not None
+
+    image = np.zeros((4, 4, 3), dtype=np.uint8)
+    near = BackGround(4, 4, uid="near")
+    near.back_image = np.zeros((4, 4, 3), dtype=np.uint8)
+    far = BackGround(4, 4, uid="far")
+    far.back_image = np.full((4, 4, 3), 255, dtype=np.uint8)
+
+    # near 排在前面，倒序遍历时最后访问到的是 near；若实现正确应始终返回 near
+    detect.background_list = [near, far]
+    assert detect.process_background_nearest(image).uid == "near"
+    detect.background_list = [far, near]
+    assert detect.process_background_nearest(image).uid == "near"
+    # 空列表应返回 None 而不是抛异常
+    detect.background_list = []
+    assert detect.process_background_nearest(image) is None
+
+
+def test_ellipse_plot_module_import_has_no_side_effects():
+    """simulate.ellipse.plot 导入时不得读取 data.txt 或绘图。"""
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import matplotlib; matplotlib.use('Agg');"
+            " import funfluid.simulate.ellipse.plot as m; print(len(m.ELLIPSE_COLUMNS))",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=tempfile.gettempdir(),
+    )
+    assert result.returncode == 0, result.stderr
+    assert "19" in result.stdout
+
+
+def test_load_ellipse_frames_normal_and_failure_paths(tmp_path):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    from funfluid.simulate.ellipse.plot import ELLIPSE_COLUMNS, load_ellipse_frames
+
+    good = tmp_path / "data.txt"
+    row = " ".join(str(float(i)) for i in range(len(ELLIPSE_COLUMNS)))
+    good.write_text(f"{row}\n{row}\n", encoding="utf-8")
+
+    df = load_ellipse_frames(good)
+    assert list(df.columns) == ELLIPSE_COLUMNS
+    assert len(df) == 2
+
+    empty = tmp_path / "empty.txt"
+    empty.write_text("\n  \n", encoding="utf-8")
+    with pytest.raises(ValueError, match="内容为空"):
+        load_ellipse_frames(empty)
+
+    bad = tmp_path / "bad.txt"
+    bad.write_text("1.0 2.0 3.0\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="列数不匹配"):
+        load_ellipse_frames(bad)
+
+    with pytest.raises(FileNotFoundError):
+        load_ellipse_frames(tmp_path / "missing.txt")
+
+
+def test_split_all_extensions():
+    from funfluid.temp.temp1 import split_all_extensions
+
+    assert split_all_extensions("/a/b/c.tar.gz") == ("/a/b/c", [".tar", ".gz"])
+    assert split_all_extensions("/a/b/c.txt") == ("/a/b/c", [".txt"])
+    assert split_all_extensions("/a/b/c") == ("/a/b/c", [])
+
+
+def test_back_contain_default_center_is_not_shared():
+    """BackContain 的 center 默认值不能是共享的可变 numpy 数组。"""
+    pytest.importorskip(
+        "cv2",
+        reason="funfluid.experiment.chlamydomonas.detect 依赖 funfluid[video] extra",
+    )
+    from funfluid.experiment.chlamydomonas.detect.contain import BackContain
+
+    a = BackContain()
+    b = BackContain()
+    a.center[0] = 99
+    assert b.center[0] == 0
+
+
+def test_base_cache_read_accepts_extra_positional_args(tmp_path):
+    """overwrite 已改为仅限关键字参数，透传的 *args 不应与它冲突。"""
+    from funfluid.common.base.cache import BaseCache
+
+    class _Cache(BaseCache):
+        def __init__(self, filepath):
+            super().__init__(filepath=filepath)
+            self.calls = []
+
+        def execute(self, *args, **kwargs):
+            self.calls.append(("execute", args, kwargs))
+
+        def _read(self, *args, **kwargs):
+            return ("read", args, kwargs)
+
+        def _save(self, *args, **kwargs):
+            self.calls.append(("save", args, kwargs))
+
+    cache = _Cache(str(tmp_path / "nonexistent.bin"))
+    assert cache.read("extra", flag=1) == ("read", ("extra",), {"flag": 1})
+    assert ("execute", ("extra",), {"flag": 1}) in cache.calls
