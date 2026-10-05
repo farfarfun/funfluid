@@ -55,11 +55,7 @@ u_theta 0.0100922 47 20.5012 609.95 -0.00669423 0.00134881
 """
 
 data = data3
-d2 = [
-    [float(i) for i in line.split(" ")[1:]]
-    for line in data.split("\n")
-    if len(line) > 10
-]
+d2 = [[float(i) for i in line.split(" ")[1:]] for line in data.split("\n") if len(line) > 10]
 df = pd.DataFrame(d2)
 df.columns = ["us", "l", "lx", "ly", "ux", "uy"]
 largs_plot_speed(df)

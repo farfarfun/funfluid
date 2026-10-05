@@ -7,12 +7,12 @@ import numpy as np
 import pandas as pd
 
 from funfluid.common.base.cache import BaseCache
-from funfluid.experiment.chlamydomonas.base.base import process_wrap, VideoBase
+from funfluid.experiment.chlamydomonas.base.base import VideoBase, process_wrap
 from funfluid.experiment.chlamydomonas.detect.background import (
-    BackGroundDetect,
     BackGround,
+    BackGroundDetect,
 )
-from funfluid.experiment.chlamydomonas.detect.contain import ContainDetect, BackContain
+from funfluid.experiment.chlamydomonas.detect.contain import BackContain, ContainDetect
 from funfluid.utils.log import logger
 
 
@@ -88,9 +88,7 @@ class Particle:
 class ParticleDetect(BaseCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
         self.config = config
-        super(ParticleDetect, self).__init__(
-            filepath=f"{self.config.cache_dir}/detect_particles.pkl", *args, **kwargs
-        )
+        super().__init__(*args, filepath=f"{self.config.cache_dir}/detect_particles.pkl", **kwargs)
         self.particle_csv_path = f"{self.config.cache_dir}/detect_particles.csv"
         self.particle_list: list[Particle] = []
 
@@ -110,7 +108,7 @@ class ParticleDetect(BaseCache):
         )  # 寻找轮廓
 
         particles = []
-        for i, contour in enumerate(contours):
+        for contour in contours:
             center, radius, angle = fit_particle(contour)
             if center is None:
                 continue
@@ -140,9 +138,7 @@ class ParticleDetect(BaseCache):
         def fun(step, image, ext_json):
             background = backgrounds.process_background_nearest(image)
             contain = contains.find_contain(background.uid)
-            particles = self.process_particle_image(
-                background, contain, image, step, ext_json
-            )
+            particles = self.process_particle_image(background, contain, image, step, ext_json)
             if debug:
                 cv2.circle(
                     image,
@@ -186,10 +182,7 @@ class ParticleDetect(BaseCache):
                 return
             background = backgrounds.process_background_nearest(image)
             contain = contains.find_contain(background.uid)
-            particles = self.process_particle_image(
-                background, contain, image, step, ext_json
-            )
-            # cv2.circle(image, (int(contain.center[0]), int(contain.center[1])), int(contain.radius), (0, 255, 0), 2)
+            particles = self.process_particle_image(background, contain, image, step, ext_json)
             for particle in particles:
                 cv2.ellipse(
                     image,
@@ -205,9 +198,7 @@ class ParticleDetect(BaseCache):
             if start < step <= end:
                 images.append(image)
             if step == end:
-                imageio.mimsave(
-                    f"{save_path}/gif-{start}-{end}.gif", images, duration=0.8
-                )
+                imageio.mimsave(f"{save_path}/gif-{start}-{end}.gif", images, duration=0.8)
                 images.clear()
 
             return len(self.particle_list)
@@ -233,9 +224,7 @@ class ParticleDetect(BaseCache):
                 return
             background = backgrounds.process_background_nearest(image)
             contain = contains.find_contain(background.uid)
-            particles = self.process_particle_image(
-                background, contain, image, step, ext_json
-            )
+            particles = self.process_particle_image(background, contain, image, step, ext_json)
             for particle in particles:
                 cv2.ellipse(
                     image,
@@ -277,9 +266,7 @@ class ParticleDetect(BaseCache):
                 return
             background = backgrounds.process_background_nearest(image)
             contain = contains.find_contain(background.uid)
-            particles = self.process_particle_image(
-                background, contain, image, step, ext_json
-            )
+            particles = self.process_particle_image(background, contain, image, step, ext_json)
             for particle in particles:
                 cv2.ellipse(
                     image,

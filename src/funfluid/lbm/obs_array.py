@@ -1,8 +1,10 @@
 import math
 import time
 
-from .core.lattice import *
-from .core.shape import *
+import numpy as np
+
+from .core.lattice import Lattice
+from .core.shape import generate_shape
 
 ###############################################
 # LBM poiseuille with array of obstacles
@@ -154,4 +156,4 @@ while lat.compute:
 
 # Count time
 end_time = time.time()
-print("# Loop time = {:f}".format(end_time - start_time))
+print(f"# Loop time = {end_time - start_time:f}")

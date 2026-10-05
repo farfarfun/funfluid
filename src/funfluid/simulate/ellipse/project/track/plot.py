@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import math
 from functools import partial
 
@@ -9,7 +8,7 @@ import pandas as pd
 
 
 def _load(path, index=0):
-    df = pd.read_csv(path, sep="\s+", header=None)
+    df = pd.read_csv(path, sep=r"\s+", header=None)
     cols = [f"c{i}" for i in df.columns]
     cols[0] = "x"
     cols[1] = "y"
@@ -25,9 +24,7 @@ def _load(path, index=0):
 
 
 class Canvas:
-    def __init__(
-        self, width=800, height=100, x_start=0, y_start=-0.5, aspect=1, scale=1
-    ):
+    def __init__(self, width=800, height=100, x_start=0, y_start=-0.5, aspect=1, scale=1):
         self.width = width
         self.height = height
         self.x_start = x_start
@@ -46,9 +43,7 @@ class Canvas:
 
 
 class EllipseTrack:
-    def __init__(
-        self, df, a=10, b=5, color=None, marker=None, line_width=1, *args, **kwargs
-    ):
+    def __init__(self, df, a=10, b=5, color=None, marker=None, line_width=1, *args, **kwargs):
         if isinstance(df, str):
             self.df = _load(df)
         else:
@@ -115,12 +110,10 @@ class EllipseTrack:
             )[0]
         )
         self.lns.append(
-            plt.plot(
-                [], [], color=self.color, marker=self.marker, linewidth=self.line_width
-            )[0]
+            plt.plot([], [], color=self.color, marker=self.marker, linewidth=self.line_width)[0]
         )
 
-        for i, record in enumerate(self.snapshot_steps):
+        for record in self.snapshot_steps:
             self.lns.append(
                 plt.plot(
                     [],
@@ -139,11 +132,7 @@ class EllipseTrack:
         theta = tmp_df["theta"][0]
         phi = np.array([i / 100.0 * np.pi for i in range(-1, 201)])
         x = x0 + np.cos(theta) * a * np.cos(phi) - np.sin(theta) * b * np.sin(phi)
-        y = (
-            y0
-            + (np.sin(theta) * a * np.cos(phi) + np.cos(theta) * b * np.sin(phi))
-            / canvas.aspect
-        )
+        y = y0 + (np.sin(theta) * a * np.cos(phi) + np.cos(theta) * b * np.sin(phi)) / canvas.aspect
 
         x[0] = x0
         y[0] = y0
@@ -156,9 +145,7 @@ class EllipseTrack:
 
         for i, record in enumerate(self.snapshot_steps):
             if record["step"] <= step:
-                self.lns[i + 2].set_data(
-                    *self._get_ellipse_data(record["step"], canvas=canvas)
-                )
+                self.lns[i + 2].set_data(*self._get_ellipse_data(record["step"], canvas=canvas))
             else:
                 self.lns[i + 2].set_data([], [])
         return self.lns
@@ -176,7 +163,9 @@ class EllipseTrack:
             repeat=False,
         )
         plt.show()
-        # ani.save("a.gif", writer='imagemagick')
+        # 必须把 FuncAnimation 对象返回给调用方持有，
+        # 否则它被垃圾回收后动画会停止播放。
+        return ani
 
 
 class FlowTrack:

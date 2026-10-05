@@ -1,5 +1,4 @@
 import tecplot as tp
-from tecplot.constant import *
 
 
 def new_layout_connect(port=7600):

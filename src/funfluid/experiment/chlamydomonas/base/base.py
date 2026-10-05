@@ -23,9 +23,7 @@ class VideoBase(BaseCache):
         self.video_name = video_split.video_name
         self.video_paths = video_split.video_paths
         self.cache_dir = video_split.cache_dir
-        super(VideoBase, self).__init__(
-            filepath=f"{self.cache_dir}/base.pkl", *args, **kwargs
-        )
+        super().__init__(*args, filepath=f"{self.cache_dir}/base.pkl", **kwargs)
 
         self.start_second = start_second
         self.end_second = end_second
@@ -41,7 +39,7 @@ class VideoBase(BaseCache):
         config_path = self.video_split.config_path
         if not os.path.exists(config_path):
             return
-        data = json.loads(open(config_path, "r").read())
+        data = json.loads(open(config_path).read())
         if "startSecond" in data.keys():
             self.start_second = data["startSecond"]
         if "endSecond" in data.keys():

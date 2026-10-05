@@ -10,8 +10,8 @@ from tqdm import tqdm
 from funfluid.common.base.cache import CSVDataFrameCache
 from funfluid.experiment.chlamydomonas.base.base import VideoBase
 from funfluid.experiment.chlamydomonas.detect.background import (
-    BackGroundDetect,
     BackGround,
+    BackGroundDetect,
 )
 from funfluid.utils.log import logger
 
@@ -35,9 +35,7 @@ def fit_contain(contour):
     # if radius > 600:
     #     return None, None
     data = np.subtract(np.reshape(contour, [contour.shape[0], 2]), np.array([center]))
-    score1 = 1 - round(
-        np.abs((np.linalg.norm(data, axis=1) - radius).mean()) / radius, 4
-    )
+    score1 = 1 - round(np.abs((np.linalg.norm(data, axis=1) - radius).mean()) / radius, 4)
     if score1 < 0.6:
         return None, None
     area2 = radius * radius * np.pi
@@ -47,8 +45,10 @@ def fit_contain(contour):
 
 
 class BackContain:
-    def __init__(self, center=np.array([0, 0]), radius=0, count=0, uid=0):
-        self.center = center
+    def __init__(self, center=None, radius=0, count=0, uid=0):
+        # 默认值不能直接写 np.array([0, 0])：函数默认参数只求值一次，
+        # 所有未显式传参的实例会共享同一个可变数组。
+        self.center = np.array([0, 0]) if center is None else center
         self.radius = radius
         self.count = count
         self.uid = uid
@@ -58,9 +58,7 @@ class BackContain:
         return dis < self.radius
 
     def cul_distance(self, center):
-        return math.sqrt(
-            (center[0] - self.center[0]) ** 2 + (center[1] - self.center[1]) ** 2
-        )
+        return math.sqrt((center[0] - self.center[0]) ** 2 + (center[1] - self.center[1]) ** 2)
 
     def to_json(self):
         return {
@@ -83,14 +81,10 @@ class BackContain:
 class ContainDetect(CSVDataFrameCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
         self.config = config
-        super(ContainDetect, self).__init__(
-            filepath=f"{self.config.cache_dir}/detect_contains.csv", *args, **kwargs
-        )
+        super().__init__(*args, filepath=f"{self.config.cache_dir}/detect_contains.csv", **kwargs)
         self.contain_list: list[BackContain] = []
 
-    def process_contain_image(
-        self, background: BackGround, debug=False
-    ) -> list[BackContain]:
+    def process_contain_image(self, background: BackGround, debug=False) -> list[BackContain]:
         gray = cv2.cvtColor(background.back_image, cv2.COLOR_BGR2GRAY)  # 转为灰度值图
         ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_TRIANGLE)  # 转为二值图
         contours, hierarchy = cv2.findContours(
@@ -98,7 +92,7 @@ class ContainDetect(CSVDataFrameCache):
         )  # 寻找轮廓
 
         result_contain = None
-        for i, contour in enumerate(contours):
+        for contour in contours:
             center, radius = fit_contain(contour)
             if center is not None:
                 if debug:
@@ -150,8 +144,7 @@ class ContainDetect(CSVDataFrameCache):
             if contain.uid == uid:
                 return contain
         raise LookupError(
-            f"未找到 uid={uid} 对应的 contain，当前已检测 "
-            f"{len(self.contain_list)} 个 contain"
+            f"未找到 uid={uid} 对应的 contain，当前已检测 {len(self.contain_list)} 个 contain"
         )
 
     def _parse(self, df: DataFrame, *args, **kwargs):

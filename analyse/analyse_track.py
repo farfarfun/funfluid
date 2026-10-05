@@ -1,5 +1,5 @@
 from funfluid.simulate.ellipse.project.project import BaseProject
-from funfluid.simulate.ellipse.project.track import EllipseTrack, FlowTrack, FlowBase
+from funfluid.simulate.ellipse.project.track import EllipseTrack, FlowBase, FlowTrack
 
 
 class Project(BaseProject):
@@ -23,8 +23,6 @@ class Project(BaseProject):
 
             # track.transform()
 
-            # track.set_flow(FlowBase(100, min(track.max_y, 1200) + 10, x_start=min(track.min_x - 10, 0)))
-        # track.set_flow(FlowBase(min(track.max_x, 120000) + 10, 100, x_start=min(track.min_x - 10, 0)))
         track.set_flow(FlowBase(1250, 100, x_start=1000))
 
         track.plot(

@@ -2,6 +2,7 @@ import math
 import time
 
 import numpy as np
+
 from funfluid.lbm import Lattice
 from funfluid.lbm.core.shape import generate_shape
 
@@ -144,4 +145,4 @@ while lat.compute:
 
 # Count time
 end_time = time.time()
-print("# Loop time = {:f}".format(end_time - start_time))
+print(f"# Loop time = {end_time - start_time:f}")

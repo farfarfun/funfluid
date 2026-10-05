@@ -28,7 +28,7 @@ lattice.equilibrium()
 lattice.collision_stream()
 lattice.macro()
 
-print(lattice.u.shape)   # (2, 4, 4) 速度场
+print(lattice.u.shape)  # (2, 4, 4) 速度场
 print(lattice.rho.shape)  # (4, 4) 密度场
 ```
 

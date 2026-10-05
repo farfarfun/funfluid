@@ -1,7 +1,7 @@
 import math
 import time
 
-from funfluid.lbm.core.lattice import *
+from funfluid.lbm.core.lattice import Lattice
 
 ###############################################
 # LBM lid-driven cavity
@@ -87,7 +87,7 @@ while lattice.compute:
 
 # Count time
 end_time = time.time()
-print("# Loop time = {:f}".format(end_time - start_time))
+print(f"# Loop time = {end_time - start_time:f}")
 
 # Output error with exact solution
 lattice.cavity_error(u_lbm)

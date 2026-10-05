@@ -1,10 +1,10 @@
-# endcoding: utf-8
 import math
 import os
 from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 from funfluid.lbm.core.buff import Buff
 from funfluid.lbm.core.speed_nb import (
     nb_bounce_back_obstacle,
@@ -107,7 +107,7 @@ class BaseDefine:
 
         # 输出目录
         time = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-        self.results_dir = "./results/"
+        self.results_dir = kwargs.get("results_dir", "./results/")
         self.output_dir = self.results_dir + str(time) + "/"
         self.png_dir = self.output_dir + "./png/"
 
@@ -184,12 +184,8 @@ class BaseDefine:
         # 形式的主循环一次都不会进入。
         self.it = 0
         self.compute = True
-        self.drag_buff = Buff(
-            "drag", self.dt, self.obs_cv_ct, self.obs_cv_nb, self.output_dir
-        )
-        self.lift_buff = Buff(
-            "lift", self.dt, self.obs_cv_ct, self.obs_cv_nb, self.output_dir
-        )
+        self.drag_buff = Buff("drag", self.dt, self.obs_cv_ct, self.obs_cv_nb, self.output_dir)
+        self.lift_buff = Buff("lift", self.dt, self.obs_cv_ct, self.obs_cv_nb, self.output_dir)
 
         # 日志输出
         logger.info("")
@@ -222,12 +218,8 @@ class BaseDefine:
         self.rho[:, :] = np.sum(self.g[:, :, :], axis=0)
 
         # 计算速度
-        self.u[0, :, :] = (
-            np.tensordot(self.c[:, 0], self.g[:, :, :], axes=(0, 0)) / self.rho[:, :]
-        )
-        self.u[1, :, :] = (
-            np.tensordot(self.c[:, 1], self.g[:, :, :], axes=(0, 0)) / self.rho[:, :]
-        )
+        self.u[0, :, :] = np.tensordot(self.c[:, 0], self.g[:, :, :], axes=(0, 0)) / self.rho[:, :]
+        self.u[1, :, :] = np.tensordot(self.c[:, 1], self.g[:, :, :], axes=(0, 0)) / self.rho[:, :]
 
     def equilibrium(self) -> None:
         """计算 D2Q9 平衡态分布函数。
@@ -293,33 +285,23 @@ class Condition(BaseDefine):
 
     def zou_he_left_wall_velocity(self) -> None:
         """施加 Zou-He 左侧壁面速度边界条件。"""
-        nb_zou_he_left_wall_velocity(
-            self.lx, self.ly, self.u, self.u_left, self.rho, self.g
-        )
+        nb_zou_he_left_wall_velocity(self.lx, self.ly, self.u, self.u_left, self.rho, self.g)
 
     def zou_he_right_wall_velocity(self) -> None:
         """施加 Zou-He 右侧壁面速度边界条件。"""
-        nb_zou_he_right_wall_velocity(
-            self.lx, self.ly, self.u, self.u_right, self.rho, self.g
-        )
+        nb_zou_he_right_wall_velocity(self.lx, self.ly, self.u, self.u_right, self.rho, self.g)
 
     def zou_he_top_wall_velocity(self) -> None:
         """施加 Zou-He 顶部无滑移壁面速度边界条件。"""
-        nb_zou_he_top_wall_velocity(
-            self.lx, self.ly, self.u, self.u_top, self.rho, self.g
-        )
+        nb_zou_he_top_wall_velocity(self.lx, self.ly, self.u, self.u_top, self.rho, self.g)
 
     def zou_he_bottom_wall_velocity(self) -> None:
         """施加 Zou-He 底部无滑移壁面速度边界条件。"""
-        nb_zou_he_bottom_wall_velocity(
-            self.lx, self.ly, self.u, self.u_bot, self.rho, self.g
-        )
+        nb_zou_he_bottom_wall_velocity(self.lx, self.ly, self.u, self.u_bot, self.rho, self.g)
 
     def zou_he_bottom_left_corner(self) -> None:
         """施加 Zou-He 左下角边界条件。"""
-        nb_zou_he_bottom_left_corner_velocity(
-            self.lx, self.ly, self.u, self.rho, self.g
-        )
+        nb_zou_he_bottom_left_corner_velocity(self.lx, self.ly, self.u, self.rho, self.g)
 
     def zou_he_top_left_corner(self) -> None:
         """施加 Zou-He 左上角边界条件。"""
@@ -331,9 +313,7 @@ class Condition(BaseDefine):
 
     def zou_he_bottom_right_corner(self) -> None:
         """施加 Zou-He 右下角边界条件。"""
-        nb_zou_he_bottom_right_corner_velocity(
-            self.lx, self.ly, self.u, self.rho, self.g
-        )
+        nb_zou_he_bottom_right_corner_velocity(self.lx, self.ly, self.u, self.rho, self.g)
 
 
 class Lattice(Condition):
@@ -347,9 +327,7 @@ class Lattice(Condition):
         """
         super().__init__(*args, **kwargs)
 
-    def drag_lift(
-        self, obs: int, R_ref: float, U_ref: float, L_ref: float
-    ) -> tuple[float, float]:
+    def drag_lift(self, obs: int, R_ref: float, U_ref: float, L_ref: float) -> tuple[float, float]:
         """计算指定障碍物上的无量纲阻力系数与升力系数。
 
         Args:
@@ -391,11 +369,7 @@ class Lattice(Condition):
         # 写入文件
         filename = self.output_dir + "drag_lift"
         with open(filename, "a") as f:
-            f.write(
-                "{} {} {} {} {} {} {}\n".format(
-                    it * self.dt, Cx, Cy, avg_Cx, avg_Cy, dcx, dcy
-                )
-            )
+            f.write(f"{it * self.dt} {Cx} {Cy} {avg_Cx} {avg_Cy} {dcx} {dcy}\n")
 
     def bounce_back_obstacle(self, obs: int) -> None:
         """对指定障碍物施加半程反弹（halfway bounce-back）无滑移边界条件。
@@ -493,7 +467,7 @@ class Lattice(Condition):
             y = np.linspace(0, 1, self.ny)
             u = np.linspace(0, 1, 100)
             g = np.meshgrid(u, u)
-            str_pts = list(zip(*(x.flat for x in g)))
+            str_pts = list(zip(*(gi.flat for gi in g), strict=True))
             plt.streamplot(
                 x,
                 y,
@@ -615,9 +589,9 @@ class Lattice(Condition):
         # 判断点在多边形内部还是外部
         # 该算法对任意非凸多边形均有效
         for i in range(len(poly)):
-            if (
-                (poly[i, 1] < pt[1] <= poly[j, 1]) or (poly[j, 1] < pt[1] <= poly[i, 1])
-            ) and (poly[i, 0] < pt[0] or poly[j, 0] < pt[0]):
+            if ((poly[i, 1] < pt[1] <= poly[j, 1]) or (poly[j, 1] < pt[1] <= poly[i, 1])) and (
+                poly[i, 0] < pt[0] or poly[j, 0] < pt[0]
+            ):
                 # 计算斜率
                 slope = (poly[j, 0] - poly[i, 0]) / (poly[j, 1] - poly[i, 1])
 
@@ -700,7 +674,6 @@ class Lattice(Condition):
 
     def poiseuille(self, pt, it, sigma):
         """计算泊肃叶（Poiseuille）流速度剖面。"""
-        x = pt[0]
         y = pt[1]
         H = self.y_max - self.y_min
         u = np.zeros(2)
@@ -729,7 +702,7 @@ class Lattice(Condition):
         filename = self.output_dir + "poiseuille"
         with open(filename, "w") as f:
             for j in range(self.ny):
-                f.write("{} {} {}\n".format(j * self.dx, u_error[0, j], u_error[1, j]))
+                f.write(f"{j * self.dx} {u_error[0, j]} {u_error[1, j]}\n")
 
     def cavity_error(self, u_lbm):
         """计算计算域中线处方腔流的数值误差并写入文件。"""
@@ -748,11 +721,11 @@ class Lattice(Condition):
         filename = self.output_dir + "cavity_uy"
         with open(filename, "w") as f:
             for i in range(self.nx):
-                f.write("{} {}\n".format(i * self.dx, uy_error[i]))
+                f.write(f"{i * self.dx} {uy_error[i]}\n")
         filename = self.output_dir + "cavity_ux"
         with open(filename, "w") as f:
             for j in range(self.ny):
-                f.write("{} {}\n".format(j * self.dx, ux_error[j]))
+                f.write(f"{j * self.dx} {ux_error[j]}\n")
 
     def check_stop(self) -> bool:
         """检查停止条件（达到最大迭代步数或阻力/升力收敛）。
@@ -776,6 +749,6 @@ class Lattice(Condition):
         if self.stop == "it":
             logger.info(f"# it = {self.it} / {self.it_max}")
         if self.stop == "obs":
-            str_d = "{:10.6f}".format(self.drag_buff.obs)
-            str_l = "{:10.6f}".format(self.lift_buff.obs)
+            str_d = f"{self.drag_buff.obs:10.6f}"
+            str_l = f"{self.lift_buff.obs:10.6f}"
             logger.info(f"# it = {self.it}, avg drag ={str_d}, avg lift ={str_l}")

@@ -24,9 +24,7 @@ def analyse_property(video_path: str) -> None:
         NotImplementedError: 具体统计逻辑是历史遗留的一次性脚本，
             尚未补齐实现。
     """
-    raise NotImplementedError(
-        f"property.py 的颗粒属性统计逻辑尚未实现（video_path={video_path}）"
-    )
+    raise NotImplementedError(f"property.py 的颗粒属性统计逻辑尚未实现（video_path={video_path}）")
 
 
 if __name__ == "__main__":

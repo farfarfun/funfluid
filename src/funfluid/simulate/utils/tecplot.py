@@ -11,7 +11,7 @@ def read_tecplot_point(path: str) -> pd.DataFrame:
     Returns:
         以变量名为列名的 DataFrame，行数等于 ZONE 中声明的节点数 `N`。
     """
-    with open(path, "r") as f:
+    with open(path) as f:
         data = f.read().split("\n")
     cols = [col for col in data[0].split("=")[1].strip().split(",")]
     zone = dict(

@@ -2,7 +2,7 @@ import pandas as pd
 
 
 def load_v(path):
-    with open(path, "r") as fr:
+    with open(path) as fr:
         row1 = fr.readline()
         row2 = fr.readline()
     parameter_map = dict(kv.strip().split("=") for kv in row2.strip("zone").split(","))
@@ -12,7 +12,7 @@ def load_v(path):
         skiprows=2,
         header=None,
         nrows=int(parameter_map["I"]) * int(parameter_map["J"]),
-        sep="\s+",
+        sep=r"\s+",
     )
 
     cols = row1.strip("ZIBE").split("=")[1].strip().replace('"', "").split(",")
@@ -24,12 +24,10 @@ def load_v(path):
 
 
 def load_p(path):
-    with open(path, "r") as fr:
+    with open(path) as fr:
         row1 = fr.readline()
         row2 = fr.readline()
     parameter_map = dict(kv.strip().split("=") for kv in row2.split(","))
-    df = pd.read_csv(
-        path, skiprows=2, header=None, nrows=int(parameter_map["E"]) + 1, sep="\s+"
-    )
+    df = pd.read_csv(path, skiprows=2, header=None, nrows=int(parameter_map["E"]) + 1, sep=r"\s+")
     df.columns = row1.split("=")[1].strip().replace('"', "").split(",")
     return df

@@ -17,11 +17,7 @@ class DataFit:
 
     def fit_init(self, data, start_index=0, end_index=0):
         d2 = np.array(
-            [
-                [float(i) for i in line.split("\t")]
-                for line in data.split("\n")
-                if len(line) > 0
-            ]
+            [[float(i) for i in line.split("\t")] for line in data.split("\n") if len(line) > 0]
         )
         if end_index == 0:
             return d2[start_index:, 0], d2[start_index:, 1]

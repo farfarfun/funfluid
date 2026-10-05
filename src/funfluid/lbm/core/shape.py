@@ -1,4 +1,3 @@
-# endcoding: utf-8
 import math
 import os
 
@@ -148,9 +147,7 @@ class Shape:
             linewidth=2.5,
             zorder=0,
         )
-        plt.fill(
-            self.curve_pts[:, 0], self.curve_pts[:, 1], "black", linewidth=0, zorder=1
-        )
+        plt.fill(self.curve_pts[:, 0], self.curve_pts[:, 1], "black", linewidth=0, zorder=1)
 
         # 绘制控制点，每个点使用不同颜色
         colors = matplotlib.cm.ocean(np.linspace(0, 1, self.n_control_pts))
@@ -178,17 +175,13 @@ class Shape:
         filename = self.output_dir + self.name + ".csv"
         with open(filename, "w") as file:
             # 写入文件头（控制点数量、采样点数量）
-            file.write("{} {}\n".format(self.n_control_pts, self.n_sampling_pts))
+            file.write(f"{self.n_control_pts} {self.n_sampling_pts}\n")
 
             # 写入各控制点坐标、半径与锐度
             for i in range(0, self.n_control_pts):
                 file.write(
-                    "{} {} {} {}\n".format(
-                        self.control_pts[i, 0],
-                        self.control_pts[i, 1],
-                        self.radius[i],
-                        self.edgy[i],
-                    )
+                    f"{self.control_pts[i, 0]} {self.control_pts[i, 1]} "
+                    f"{self.radius[i]} {self.edgy[i]}\n"
                 )
 
     def read_csv(self, filename, *args, **kwargs):
@@ -221,7 +214,7 @@ class Shape:
             n_control_pts = int(header[0])
             n_sampling_pts = int(header[1])
 
-            for i in range(0, n_control_pts):
+            for _ in range(n_control_pts):
                 coords = file.readline().split()
                 x.append(float(coords[0]))
                 y.append(float(coords[1]))
@@ -482,8 +475,7 @@ def generate_shape(
     # 校验输入参数
     if shape_type not in ["cylinder", "square", "random"]:
         raise ValueError(
-            f'不支持的 shape_type: {shape_type!r}，'
-            '仅支持 "cylinder"、"square"、"random"'
+            f'不支持的 shape_type: {shape_type!r}，仅支持 "cylinder"、"square"、"random"'
         )
     logger.debug(f"generate_shape: shape_type={shape_type}, n_pts={n_pts}")
 
@@ -507,14 +499,10 @@ def generate_shape(
         ctrl_pts[:, :] *= shape_size
 
     # 初始化并构建形状
-    shape = Shape(
-        shape_name, position, ctrl_pts, n_pts, n_sampling_pts, radius, edgy, output_dir
-    )
+    shape = Shape(shape_name, position, ctrl_pts, n_pts, n_sampling_pts, radius, edgy, output_dir)
 
     shape.build()
-    shape.generate_image(
-        xmin=-shape_size, xmax=shape_size, ymin=-shape_size, ymax=shape_size
-    )
+    shape.generate_image(xmin=-shape_size, xmax=shape_size, ymin=-shape_size, ymax=shape_size)
     shape.write_csv()
 
     return shape

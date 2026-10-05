@@ -6,7 +6,6 @@
 （`python -m funfluid.lbm.params`）才会执行并打印参数、创建输出目录。
 """
 
-import datetime
 import math
 import os
 
@@ -34,11 +33,8 @@ def build_default_lattice(results_dir: str = "./results/") -> Lattice:
     y_min = 0.0
     y_max = 1.0
 
-    # Fixed parameters
-    # u_lbm < 0.05 maintains low Mach condition
+    # 固定参数（u_lbm < 0.05 以满足低马赫数条件）
     tau_lbm = 0.8
-    dx_lbm = 1.0
-    dt_lbm = 1.0
     Cs = 1.0 / math.sqrt(3.0)
 
     # Free parameters
@@ -81,12 +77,7 @@ def build_default_lattice(results_dir: str = "./results/") -> Lattice:
     lambda_trt = 1.0 / 4.0  # Constant TRT parameter
     tau_m_lbm = lambda_trt / (tau_p_lbm - 0.5) + 0.5
 
-    # Output parameters
-    output_freq = 500
-    time = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-    output_dir = results_dir + str(time) + "/"
-
-    # Other parameters
+    # 其他参数
     lattice_name = "lattice"
     t_max = 30.0
     it_max = math.floor(t_max / dt) + 1
@@ -108,30 +99,36 @@ def build_default_lattice(results_dir: str = "./results/") -> Lattice:
     logger.info(f"# nu_lbm     = {nu_lbm}")
     logger.info(f"# it         = {it_max}")
 
-    if not os.path.exists(results_dir):
-        os.makedirs(results_dir)
+    os.makedirs(results_dir, exist_ok=True)
 
-    # Initialize lattice
+    # 注意：Lattice/BaseDefine 只从 **kwargs 读取参数，位置参数会被整体忽略，
+    # 这里必须逐项用关键字传入，否则返回的是一个全默认参数的 Lattice。
     return Lattice(
-        lattice_name,
-        x_min,
-        x_max,
-        y_min,
-        y_max,
-        nx,
-        ny,
-        tau_p_lbm,
-        tau_m_lbm,
-        Cx,
-        Ct,
-        Cs,
-        Cr,
-        Cu,
-        Cf,
-        dx,
-        dt,
-        output_dir,
-        dpi,
+        name=lattice_name,
+        results_dir=results_dir,
+        x_min=x_min,
+        x_max=x_max,
+        y_min=y_min,
+        y_max=y_max,
+        nx=nx,
+        ny=ny,
+        tau_lbm=tau_lbm,
+        dx=dx,
+        dt=dt,
+        Cx=Cx,
+        Ct=Ct,
+        Cr=Cr,
+        Cn=Cn,
+        Cu=Cu,
+        Cf=Cf,
+        dpi=dpi,
+        u_lbm=u_lbm,
+        L_lbm=L_lbm,
+        nu_lbm=nu_lbm,
+        Re_lbm=Re_lbm,
+        rho_lbm=rho_lbm,
+        t_max=t_max,
+        it_max=it_max,
     )
 
 

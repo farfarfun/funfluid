@@ -475,13 +475,7 @@ def test_read_tecplot_point_parses_minimal_point_file(tmp_path):
     from funfluid.simulate.utils.tecplot import read_tecplot_point
 
     tecplot_file = tmp_path / "sample.dat"
-    tecplot_file.write_text(
-        'VARIABLES = "x", "y"\n'
-        "ZONE N=3, F=POINT\n"
-        "0.0 0.0\n"
-        "1.0 0.0\n"
-        "0.0 1.0\n"
-    )
+    tecplot_file.write_text('VARIABLES = "x", "y"\nZONE N=3, F=POINT\n0.0 0.0\n1.0 0.0\n0.0 1.0\n')
 
     df = read_tecplot_point(str(tecplot_file))
 

@@ -22,35 +22,29 @@ class BaseCache:
         return os.path.exists(self.filepath)
 
     def _execute(self, *args, **kwargs):
-        raise NotImplementedError(
-            f"{type(self).__name__}._execute 未实现，子类必须重写该方法"
-        )
+        raise NotImplementedError(f"{type(self).__name__}._execute 未实现，子类必须重写该方法")
 
     def execute(self, *args, **kwargs):
         return self._execute(*args, **kwargs)
 
     def _read(self, *args, **kwargs):
-        raise NotImplementedError(
-            f"{type(self).__name__}._read 未实现，子类必须重写该方法"
-        )
+        raise NotImplementedError(f"{type(self).__name__}._read 未实现，子类必须重写该方法")
 
     def _save(self, *args, **kwargs):
-        raise NotImplementedError(
-            f"{type(self).__name__}._save 未实现，子类必须重写该方法"
-        )
+        raise NotImplementedError(f"{type(self).__name__}._save 未实现，子类必须重写该方法")
 
-    def read(self, overwrite=False, *args, **kwargs):
+    def read(self, *args, overwrite: bool = False, **kwargs):
         if overwrite:
             logger.info(f"{self.filename2} overwrite,execute...")
             self.execute(*args, **kwargs)
-            self.save(overwrite=overwrite, *args, **kwargs)
+            self.save(*args, overwrite=overwrite, **kwargs)
         elif not self.exists():
             logger.info(f"{self.filename2} not exists,execute...")
             self.execute(*args, **kwargs)
-            self.save(overwrite=overwrite, *args, **kwargs)
+            self.save(*args, overwrite=overwrite, **kwargs)
         return self._read(*args, **kwargs)
 
-    def save(self, overwrite=False, *args, **kwargs):
+    def save(self, *args, overwrite: bool = False, **kwargs):
         if not self.exists():
             logger.info(f"{self.filename2} not exists,save.")
             self._save(*args, **kwargs)
@@ -61,7 +55,7 @@ class BaseCache:
 
 class BaseDataFrameCache(BaseCache):
     def __init__(self, *args, **kwargs):
-        super(BaseDataFrameCache, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.df = None
 
     def execute(self, *args, **kwargs):
@@ -70,7 +64,7 @@ class BaseDataFrameCache(BaseCache):
 
 class CSVDataFrameCache(BaseDataFrameCache):
     def __init__(self, *args, **kwargs):
-        super(CSVDataFrameCache, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.df = None
 
     def _parse(self, df, *args, **kwargs):
@@ -89,7 +83,7 @@ class CSVDataFrameCache(BaseDataFrameCache):
 
 class PickleDataFrameCache(BaseDataFrameCache):
     def __init__(self, *args, **kwargs):
-        super(PickleDataFrameCache, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.df = None
 
     def _read(self, *args, **kwargs):

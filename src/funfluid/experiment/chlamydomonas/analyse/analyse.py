@@ -13,9 +13,7 @@ from funfluid.experiment.chlamydomonas.detect.particle import ParticleDetect
 class TrackAnalyse(CSVDataFrameCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
         self.config = config
-        super(TrackAnalyse, self).__init__(
-            filepath=f"{self.config.cache_dir}/analyse_track.csv", *args, **kwargs
-        )
+        super().__init__(*args, filepath=f"{self.config.cache_dir}/analyse_track.csv", **kwargs)
 
     def _execute(
         self,
@@ -74,7 +72,7 @@ class TrackAnalyse(CSVDataFrameCache):
                 break
             current_step = result[index]["step"]
             index2 = index
-            for i in range(10):
+            for _ in range(10):
                 if index2 >= len(result):
                     index2 -= 1
                     break
@@ -107,9 +105,7 @@ class TrackAnalyse(CSVDataFrameCache):
 class MSDCalculate(CSVDataFrameCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
         self.config = config
-        super(MSDCalculate, self).__init__(
-            filepath=f"{self.config.cache_dir}/analyse_mse.csv", *args, **kwargs
-        )
+        super().__init__(*args, filepath=f"{self.config.cache_dir}/analyse_mse.csv", **kwargs)
 
     def _execute(
         self,
@@ -127,9 +123,7 @@ class MSDCalculate(CSVDataFrameCache):
         def find_contain_rate(uid):
             return contain_size / contains.find_contain(uid).radius
 
-        track_df["_r"] = track_df["background_uid"].apply(
-            lambda x: find_contain_rate(x)
-        )
+        track_df["_r"] = track_df["background_uid"].apply(lambda x: find_contain_rate(x))
         track_df["centerX"] = track_df["centerX"] * track_df["_r"]
         track_df["centerY"] = track_df["centerY"] * track_df["_r"]
         df_fill = pd.DataFrame([[i + 1] for i in range(track_df["step"].max())])

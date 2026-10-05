@@ -1,6 +1,7 @@
 import tecplot as tp
+from tecplot.constant import Color, ColorMapDistribution, PlotType, Streamtrace
+
 from funfluid.tecplot.utils.connect import new_layout_connect
-from tecplot.constant import *
 
 
 def plot1(data_v="", data_par=""):
@@ -59,7 +60,7 @@ def plot1(data_v="", data_par=""):
       ConsiderStyle = Yes""")
     tp.macro.execute_command("$!Pick Copy")
     tp.macro.execute_command("$!Pick Clear")
-    tp.macro.execute_command("""$!AttachGeom 
+    tp.macro.execute_command("""$!AttachGeom
       AnchorPos
         {
         X = 400.694497
@@ -73,14 +74,10 @@ def plot1(data_v="", data_par=""):
       RawData
     1
     2
-    0 0 
+    0 0
     14.1102828979 0""")
-    tp.active_frame().plot().view.zoom(
-        xmin=216.255, xmax=615.295, ymin=78.7593, ymax=442.92
-    )
-    tp.active_frame().plot().view.zoom(
-        xmin=292.456, xmax=491.976, ymin=163.522, ymax=345.602
-    )
+    tp.active_frame().plot().view.zoom(xmin=216.255, xmax=615.295, ymin=78.7593, ymax=442.92)
+    tp.active_frame().plot().view.zoom(xmin=292.456, xmax=491.976, ymin=163.522, ymax=345.602)
     tp.macro.execute_command("""$!Pick SetMouseMode
       MouseMode = Select""")
     tp.macro.execute_command("""$!Pick AddAtPosition
@@ -225,12 +222,8 @@ def plot2(data_v="", data_par=""):
     tp.active_frame().plot().axes.y_axis.max = 721.779
     tp.active_frame().plot().axes.y_axis.min = 13.5707
     tp.active_frame().plot().axes.y_axis.max = 741.892
-    tp.active_frame().plot().view.zoom(
-        xmin=204.942, xmax=603.982, ymin=69.9598, ymax=434.121
-    )
-    tp.active_frame().plot().view.zoom(
-        xmin=301.256, xmax=500.776, ymin=167.293, ymax=349.374
-    )
+    tp.active_frame().plot().view.zoom(xmin=204.942, xmax=603.982, ymin=69.9598, ymax=434.121)
+    tp.active_frame().plot().view.zoom(xmin=301.256, xmax=500.776, ymin=167.293, ymax=349.374)
     tp.macro.execute_command("""$!Pick SetMouseMode
       MouseMode = Select""")
     tp.macro.execute_command("""$!Pick AddAtPosition
@@ -239,7 +232,7 @@ def plot2(data_v="", data_par=""):
       ConsiderStyle = Yes""")
     tp.macro.execute_command("$!Pick Copy")
     tp.macro.execute_command("$!Pick Clear")
-    tp.macro.execute_command("""$!AttachGeom 
+    tp.macro.execute_command("""$!AttachGeom
       AnchorPos
         {
         X = 400.669887
@@ -253,7 +246,7 @@ def plot2(data_v="", data_par=""):
       RawData
     1
     2
-    0 0 
+    0 0
     14.1102828979 0""")
     tp.macro.execute_command("""$!Pick AddAtPosition
       X = 5.34849379799

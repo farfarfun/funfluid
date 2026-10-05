@@ -1,5 +1,5 @@
 from funfluid.simulate.ellipse.project.project import BaseProject
-from funfluid.simulate.ellipse.project.track import EllipseTrack, FlowTrack, Canvas
+from funfluid.simulate.ellipse.project.track import Canvas, EllipseTrack, FlowTrack
 
 
 class Project(BaseProject):
@@ -56,4 +56,4 @@ class Project(BaseProject):
         # plt.pause(3000)
 
 
-Project(f"/Users/bingtao/workspace/chen/flow0410/result/008").analyse_track()
+Project("/Users/bingtao/workspace/chen/flow0410/result/008").analyse_track()

@@ -12,7 +12,7 @@ class MainProgress:
 
     def run(self, debug=False):
         result = []
-        for root, directories, files in os.walk(self.config.videos_dir):
+        for root, _directories, files in os.walk(self.config.videos_dir):
             if root.endswith("useless"):
                 continue
 
@@ -21,9 +21,7 @@ class MainProgress:
                     continue
                 ext_json = {"file": file}
 
-                video_split = self.config.get_result_path(
-                    video_path=os.path.join(root, file)
-                )
+                video_split = self.config.get_result_path(video_path=os.path.join(root, file))
                 if video_split is None:
                     continue
                 video_progress = VideoProgress(video_split=video_split)

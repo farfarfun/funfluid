@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 
 from funfluid.common.base.cache import BaseCache
-from funfluid.experiment.chlamydomonas.base.base import process_wrap, VideoBase
+from funfluid.experiment.chlamydomonas.base.base import VideoBase, process_wrap
 from funfluid.utils.log import logger
 
 
@@ -44,15 +44,11 @@ class BackGround:
 
 class BackGroundDetect(BaseCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
-        super().__init__(
-            *args, filepath=f"{config.cache_dir}/detect_backgrounds.pkl", **kwargs
-        )
+        super().__init__(*args, filepath=f"{config.cache_dir}/detect_backgrounds.pkl", **kwargs)
         self.config = config
         self.background_list: list[BackGround] = []
 
-    def process_background_nearest(
-        self, image, debug=False, *args, **kwargs
-    ) -> BackGround | None:
+    def process_background_nearest(self, image, debug=False, *args, **kwargs) -> BackGround | None:
         """返回与给定帧差异最小（score 最小）的背景。
 
         Args:
@@ -73,9 +69,7 @@ class BackGroundDetect(BaseCache):
                 nearest = back
         return nearest
 
-    def process_background_image(
-        self, step, image, debug=False, *args, **kwargs
-    ) -> BackGround:
+    def process_background_image(self, step, image, debug=False, *args, **kwargs) -> BackGround:
         for back in self.background_list[::-1]:
             if back.valid(image):
                 back.add(image)

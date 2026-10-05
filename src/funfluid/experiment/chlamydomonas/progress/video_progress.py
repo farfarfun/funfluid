@@ -1,4 +1,4 @@
-from funfluid.experiment.chlamydomonas.analyse.analyse import TrackAnalyse, MSDCalculate
+from funfluid.experiment.chlamydomonas.analyse.analyse import MSDCalculate, TrackAnalyse
 from funfluid.experiment.chlamydomonas.base.base import VideoBase
 from funfluid.experiment.chlamydomonas.base.globalconfig import VideoSplit
 from funfluid.experiment.chlamydomonas.detect.background import BackGroundDetect
@@ -31,20 +31,8 @@ class VideoProgress:
                 debug=debug,
             )
 
-            # self.detect_particle.save_image(backgrounds=self.detect_background, contains=self.detect_contain,
-            #                                 start=6337, end=6389,
-            #                                 debug=debug)
-            # self.detect_particle.save_gif(backgrounds=self.detect_background, contains=self.detect_contain,
-            #                              start=6377, end=6389, debug=debug)
-            # self.detect_particle.save_video(backgrounds=self.detect_background, contains=self.detect_contain,
-            #                                start=6300, end=6550, debug=debug)
-
-            self.analyse_track.read(
-                contains=self.detect_contain, particles=self.detect_particle
-            )
-            self.analyse_msd.read(
-                track=self.analyse_track, contains=self.detect_contain
-            )
+            self.analyse_track.read(contains=self.detect_contain, particles=self.detect_particle)
+            self.analyse_msd.read(track=self.analyse_track, contains=self.detect_contain)
             ext_json.update(self.video_split.to_json())
             ext_json.update(self.base_video.to_json())
             ext_json.update(
@@ -60,8 +48,6 @@ class VideoProgress:
         except Exception as exc:
             # 批处理场景下单个视频失败不应中断整批任务，但要保留完整上下文
             # （视频路径 + 原始异常堆栈），并在结果中显式标记失败，不能悄悄吞掉。
-            logger.exception(
-                f"处理视频失败: {self.base_video.video_paths[0]}: {exc}"
-            )
+            logger.exception(f"处理视频失败: {self.base_video.video_paths[0]}: {exc}")
             ext_json["error"] = str(exc)
         return ext_json
