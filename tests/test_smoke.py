@@ -733,3 +733,21 @@ def test_base_cache_read_accepts_extra_positional_args(tmp_path):
     cache = _Cache(str(tmp_path / "nonexistent.bin"))
     assert cache.read("extra", flag=1) == ("read", ("extra",), {"flag": 1})
     assert ("execute", ("extra",), {"flag": 1}) in cache.calls
+
+
+def test_add_obstacle_ibb_length_matches_boundary(tmp_path):
+    """启用 IBB 时 obs.ibb 必须与 obs.boundary 等长且逐项对应。
+
+    此前 ibb 以 `np.empty(1)` 起始，首元素是未初始化的脏数据，
+    导致 nb_bounce_back_obstacle 中 obs_ibb[k] 与 boundary[k] 整体错位一位。
+    """
+    import numpy as np
+
+    lattice = _build_small_lattice(tmp_path, nx=21, ny=21, IBB=True)
+    square = np.array([[0.4, 0.4], [0.6, 0.4], [0.6, 0.6], [0.4, 0.6], [0.4, 0.4]])
+    lattice.add_obstacle(square, 1)
+
+    obs = lattice.obstacles[0]
+    assert len(obs.boundary) > 0
+    assert len(obs.ibb) == len(obs.boundary)
+    assert np.all(np.isfinite(obs.ibb))

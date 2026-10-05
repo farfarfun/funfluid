@@ -1,5 +1,6 @@
 import math
 import os
+from collections.abc import Sequence
 from datetime import datetime
 
 import matplotlib.pyplot as plt
@@ -392,8 +393,16 @@ class Lattice(Condition):
             self.lattice,
         )
 
-    def output_fields(self, it, freq, *args, **kwargs):
-        """输出 2D 流场速度幅值/等值线/流线图像。"""
+    def output_fields(self, it: int, freq: int, *args: object, **kwargs: object) -> None:
+        """输出 2D 流场速度幅值/等值线/流线图像。
+
+        Args:
+            it: 当前迭代步数。
+            freq: 输出频率，仅当 `it % freq == 0` 时才真正出图。
+            *args: 兼容旧调用方式的占位参数，不参与计算。
+            **kwargs: 可选开关，`u_norm`（速度幅值图，默认 True）、
+                `u_ctr`（速度等值线图，默认 False）、`u_stream`（流线图，默认 True）。
+        """
         # 处理可选参数
         u_norm = kwargs.get("u_norm", True)
         u_ctr = kwargs.get("u_ctr", False)
@@ -489,8 +498,13 @@ class Lattice(Condition):
         # 更新计数器
         self.output_it += 1
 
-    def add_obstacle(self, polygon, tag):
-        """添加障碍物并计算其边界与面积。"""
+    def add_obstacle(self, polygon: np.ndarray, tag: int) -> None:
+        """添加障碍物并计算其边界与面积。
+
+        Args:
+            polygon: 障碍物外轮廓控制点坐标，形状为 ``(n, 2)``。
+            tag: 写入 `lattice` 数组的障碍物标记值，需为非零整数。
+        """
         logger.info(f"### Obstacle {tag}")
 
         # 计算多边形边界范围
@@ -503,7 +517,9 @@ class Lattice(Condition):
         # 声明网格数组
         obstacle = np.empty((0, 2), dtype=int)
         boundary = np.empty((0, 3), dtype=int)
-        ibb = np.empty(1, dtype=float)
+        # 注意：这里必须是长度 0 的空数组。写成 np.empty(1) 会留下一个未初始化的首元素，
+        # 使 ibb[k] 与 boundary[k] 整体错位一位，IBB 插值反弹会读到脏数据。
+        ibb = np.empty(0, dtype=float)
 
         # 填充网格
         for i in range(self.nx):
@@ -570,8 +586,16 @@ class Lattice(Condition):
         obs = Obstacle(polygon, area, boundary, ibb, tag)
         self.obstacles.append(obs)
 
-    def lattice_coords(self, i, j):
-        """将整数网格索引 (i, j) 转换为物理坐标。"""
+    def lattice_coords(self, i: int, j: int) -> list[float]:
+        """将整数网格索引 (i, j) 转换为物理坐标。
+
+        Args:
+            i: x 方向网格索引。
+            j: y 方向网格索引。
+
+        Returns:
+            该格点的物理坐标 ``[x, y]``。
+        """
         # 计算并返回格点 (i,j) 的坐标
         dx = (self.x_max - self.x_min) / (self.nx - 1)
         dy = (self.y_max - self.y_min) / (self.ny - 1)
@@ -580,8 +604,16 @@ class Lattice(Condition):
 
         return [x, y]
 
-    def is_inside(self, poly, pt):
-        """判断点 pt 是否在闭合多边形 poly 内部（射线法，支持非凸多边形）。"""
+    def is_inside(self, poly: np.ndarray, pt: Sequence[float]) -> bool:
+        """判断点 pt 是否在闭合多边形 poly 内部（射线法，支持非凸多边形）。
+
+        Args:
+            poly: 闭合多边形的顶点坐标，形状为 ``(n, 2)``。
+            pt: 待判断的点坐标 ``(x, y)``。
+
+        Returns:
+            点在多边形内部时返回 `True`，否则返回 `False`。
+        """
         # 初始化
         j = len(poly) - 1
         odd_nodes = False
@@ -604,8 +636,8 @@ class Lattice(Condition):
 
         return odd_nodes
 
-    def generate_image(self):
-        """生成并保存当前网格（含障碍物边界）的图像。"""
+    def generate_image(self) -> None:
+        """生成并保存当前网格（含障碍物边界）的图像到 `output_dir`。"""
         # 添加障碍物边界
         lat = self.lattice.copy()
         lat = lat.astype(float)
@@ -621,8 +653,15 @@ class Lattice(Condition):
 
         plt.imsave(filename, np.rot90(lat), vmin=-1.0, vmax=1.0)
 
-    def set_inlet_poiseuille(self, u_lbm, rho_lbm, it, sigma):
-        """设置入口泊肃叶（Poiseuille）流场边界条件。"""
+    def set_inlet_poiseuille(self, u_lbm: float, rho_lbm: float, it: int, sigma: float) -> None:
+        """设置入口泊肃叶（Poiseuille）流场边界条件。
+
+        Args:
+            u_lbm: 格子单位下的入口特征速度。
+            rho_lbm: 格子单位下的出口参考密度。
+            it: 当前迭代步数，用于入口速度的平滑启动。
+            sigma: 平滑启动的时间尺度，越大则入口速度上升越慢。
+        """
         self.u_left[:] = 0.0
         self.u_right[:] = 0.0
         self.u_top[:] = 0.0
@@ -633,8 +672,13 @@ class Lattice(Condition):
             pt = self.lattice_coords(0, j)
             self.u_left[:, j] = u_lbm * self.poiseuille(pt, it, sigma)
 
-    def set_full_poiseuille(self, u_lbm, rho_lbm):
-        """设置全域泊肃叶（Poiseuille）流场边界条件。"""
+    def set_full_poiseuille(self, u_lbm: float, rho_lbm: float) -> None:
+        """用充分发展的泊肃叶（Poiseuille）剖面初始化整个流场。
+
+        Args:
+            u_lbm: 格子单位下的特征速度。
+            rho_lbm: 格子单位下的出口参考密度。
+        """
         self.u_left[:] = 0.0
         self.u_right[:] = 0.0
         self.u_top[:] = 0.0
@@ -648,8 +692,15 @@ class Lattice(Condition):
                 self.u_left[:, j] = u
                 self.u[:, i, j] = u
 
-    def set_cavity(self, ut, ub=0.0, ul=0.0, ur=0.0):
-        """设置顶盖驱动方腔（driven cavity）流场边界条件。"""
+    def set_cavity(self, ut: float, ub: float = 0.0, ul: float = 0.0, ur: float = 0.0) -> None:
+        """设置顶盖驱动方腔（driven cavity）流场边界条件。
+
+        Args:
+            ut: 顶壁沿 x 方向的切向速度。
+            ub: 底壁沿 x 方向的切向速度。
+            ul: 左壁沿 y 方向的切向速度。
+            ur: 右壁沿 y 方向的切向速度。
+        """
         lx = self.lx
         ly = self.ly
 
@@ -672,8 +723,17 @@ class Lattice(Condition):
         self.u[0, lx, :] = self.u_right[0, :]
         self.u[1, lx, :] = self.u_right[1, :]
 
-    def poiseuille(self, pt, it, sigma):
-        """计算泊肃叶（Poiseuille）流速度剖面。"""
+    def poiseuille(self, pt: Sequence[float], it: float, sigma: float) -> np.ndarray:
+        """计算泊肃叶（Poiseuille）流在给定位置的速度剖面。
+
+        Args:
+            pt: 物理坐标 ``(x, y)``，只用到 y 分量。
+            it: 当前迭代步数，用于速度的平滑启动。
+            sigma: 平滑启动的时间尺度。
+
+        Returns:
+            长度为 2 的速度向量 ``[ux, uy]``（归一化到特征速度）。
+        """
         y = pt[1]
         H = self.y_max - self.y_min
         u = np.zeros(2)
@@ -685,8 +745,12 @@ class Lattice(Condition):
 
         return u
 
-    def poiseuille_error(self, u_lbm):
-        """计算计算域中线处泊肃叶流的数值误差并写入文件。"""
+    def poiseuille_error(self, u_lbm: float) -> None:
+        """计算计算域中线处泊肃叶流的数值解与解析解，写入 `output_dir/poiseuille`。
+
+        Args:
+            u_lbm: 格子单位下的特征速度，用于把数值速度归一化。
+        """
         u_error = np.zeros((2, self.ny))
         nx = math.floor(self.nx / 2)
 
@@ -704,8 +768,12 @@ class Lattice(Condition):
             for j in range(self.ny):
                 f.write(f"{j * self.dx} {u_error[0, j]} {u_error[1, j]}\n")
 
-    def cavity_error(self, u_lbm):
-        """计算计算域中线处方腔流的数值误差并写入文件。"""
+    def cavity_error(self, u_lbm: float) -> None:
+        """计算计算域中线处方腔流的速度剖面，写入 `output_dir/cavity_ux` 与 `cavity_uy`。
+
+        Args:
+            u_lbm: 格子单位下的特征速度，用于把数值速度归一化。
+        """
         ux_error = np.zeros(self.nx)
         uy_error = np.zeros(self.ny)
         nx = math.floor(self.nx / 2)
@@ -744,8 +812,8 @@ class Lattice(Condition):
         self.it += 1
         return self.compute
 
-    def it_printings(self):
-        """输出当前迭代步的进度日志。"""
+    def it_printings(self) -> None:
+        """输出当前迭代步的进度日志（迭代计数或阻力/升力滑动平均）。"""
         if self.stop == "it":
             logger.info(f"# it = {self.it} / {self.it_max}")
         if self.stop == "obs":

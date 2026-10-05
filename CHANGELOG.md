@@ -30,6 +30,9 @@
   避免对象被 GC 回收导致动画不播放
 - `funfluid.simulate.ellipse.plot`、`funfluid.temp.temp1` 移除 import 时的文件读取与
   `print` 副作用，收敛为带类型标注/中文 docstring 的函数 + `__main__` 守卫
+- `funfluid.lbm.core.lattice.Lattice.add_obstacle` 修复 IBB 距离数组的越界起点：
+  原先以 `np.empty(1)` 起始，首元素为未初始化脏数据，使 `obs_ibb[k]` 与
+  `boundary[k]` 整体错位一位，启用插值反弹（IBB）时边界条件读到错误距离
 - `funfluid.simulate.ellipse.project.project` 修复 `sep="\s+"` 的无效转义（W605），
   并把遮蔽内置名的参数 `type` 改名为 `angle_unit`
 
