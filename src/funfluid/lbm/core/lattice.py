@@ -6,7 +6,21 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 from funfluid.lbm.core.buff import Buff
-from funfluid.lbm.core.speed_nb import *
+from funfluid.lbm.core.speed_nb import (
+    nb_bounce_back_obstacle,
+    nb_col_str,
+    nb_drag_lift,
+    nb_equilibrium,
+    nb_zou_he_bottom_left_corner_velocity,
+    nb_zou_he_bottom_right_corner_velocity,
+    nb_zou_he_bottom_wall_velocity,
+    nb_zou_he_left_wall_velocity,
+    nb_zou_he_right_wall_pressure,
+    nb_zou_he_right_wall_velocity,
+    nb_zou_he_top_left_corner_velocity,
+    nb_zou_he_top_right_corner_velocity,
+    nb_zou_he_top_wall_velocity,
+)
 from funfluid.utils.log import logger
 
 
@@ -166,8 +180,10 @@ class BaseDefine:
         self.obstacles = []
 
         # 迭代与停止条件
+        # compute 表示「仍需继续迭代」，初值必须为 True，否则 `while lat.compute`
+        # 形式的主循环一次都不会进入。
         self.it = 0
-        self.compute = False
+        self.compute = True
         self.drag_buff = Buff(
             "drag", self.dt, self.obs_cv_ct, self.obs_cv_nb, self.output_dir
         )
@@ -242,78 +258,109 @@ class BaseDefine:
 
 
 class Condition(BaseDefine):
-    def __init__(self, *args, **kwargs):
-        super(Condition, self).__init__(*args, **kwargs)
+    """在 `BaseDefine` 之上提供 Zou-He 系列壁面/角点边界条件。
 
-    # Zou-He 右侧壁面压力边界条件
-    def zou_he_right_wall_pressure(self):
+    所有方法都就地修改 `self.g`、`self.u`、`self.rho`，没有返回值。
+    """
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        """
+        Args:
+            *args: 透传给 `BaseDefine.__init__`。
+            **kwargs: 透传给 `BaseDefine.__init__` 的网格与物理参数。
+        """
+        super().__init__(*args, **kwargs)
+
+    def zou_he_right_wall_pressure(self) -> None:
+        """施加 Zou-He 右侧壁面压力（密度）边界条件。"""
         nb_zou_he_right_wall_pressure(
             self.lx, self.ly, self.u, self.rho_right, self.u_right, self.rho, self.g
         )
 
-    def zou_he_wall_velocity(self):
+    def zou_he_wall_velocity(self) -> None:
+        """依次施加上下左右四个壁面的 Zou-He 速度边界条件。"""
         self.zou_he_bottom_wall_velocity()
         self.zou_he_left_wall_velocity()
         self.zou_he_right_wall_velocity()
         self.zou_he_top_wall_velocity()
 
-    def zou_he_corner_velocity(self):
+    def zou_he_corner_velocity(self) -> None:
+        """依次施加四个角点的 Zou-He 速度边界条件。"""
         self.zou_he_bottom_left_corner()
         self.zou_he_top_left_corner()
         self.zou_he_top_right_corner()
         self.zou_he_bottom_right_corner()
 
-    def zou_he_left_wall_velocity(self):
-        """Zou-He 左侧壁面速度边界条件"""
+    def zou_he_left_wall_velocity(self) -> None:
+        """施加 Zou-He 左侧壁面速度边界条件。"""
         nb_zou_he_left_wall_velocity(
             self.lx, self.ly, self.u, self.u_left, self.rho, self.g
         )
 
-    def zou_he_right_wall_velocity(self):
-        """Zou-He 右侧壁面速度边界条件"""
+    def zou_he_right_wall_velocity(self) -> None:
+        """施加 Zou-He 右侧壁面速度边界条件。"""
         nb_zou_he_right_wall_velocity(
             self.lx, self.ly, self.u, self.u_right, self.rho, self.g
         )
 
-    def zou_he_top_wall_velocity(self):
-        """Zou-He 顶部无滑移壁面速度边界条件"""
+    def zou_he_top_wall_velocity(self) -> None:
+        """施加 Zou-He 顶部无滑移壁面速度边界条件。"""
         nb_zou_he_top_wall_velocity(
             self.lx, self.ly, self.u, self.u_top, self.rho, self.g
         )
 
-    def zou_he_bottom_wall_velocity(self):
-        """Zou-He 底部无滑移壁面速度边界条件"""
+    def zou_he_bottom_wall_velocity(self) -> None:
+        """施加 Zou-He 底部无滑移壁面速度边界条件。"""
         nb_zou_he_bottom_wall_velocity(
             self.lx, self.ly, self.u, self.u_bot, self.rho, self.g
         )
 
-    def zou_he_bottom_left_corner(self):
-        """Zou-He 左下角边界条件"""
+    def zou_he_bottom_left_corner(self) -> None:
+        """施加 Zou-He 左下角边界条件。"""
         nb_zou_he_bottom_left_corner_velocity(
             self.lx, self.ly, self.u, self.rho, self.g
         )
 
-    def zou_he_top_left_corner(self):
-        """Zou-He 左上角边界条件"""
+    def zou_he_top_left_corner(self) -> None:
+        """施加 Zou-He 左上角边界条件。"""
         nb_zou_he_top_left_corner_velocity(self.lx, self.ly, self.u, self.rho, self.g)
 
-    def zou_he_top_right_corner(self):
-        """Zou-He 右上角边界条件"""
+    def zou_he_top_right_corner(self) -> None:
+        """施加 Zou-He 右上角边界条件。"""
         nb_zou_he_top_right_corner_velocity(self.lx, self.ly, self.u, self.rho, self.g)
 
-    def zou_he_bottom_right_corner(self):
-        """Zou-He 右下角边界条件"""
+    def zou_he_bottom_right_corner(self) -> None:
+        """施加 Zou-He 右下角边界条件。"""
         nb_zou_he_bottom_right_corner_velocity(
             self.lx, self.ly, self.u, self.rho, self.g
         )
 
 
 class Lattice(Condition):
-    def __init__(self, *args, **kwargs):
-        super(Lattice, self).__init__(*args, **kwargs)
+    """完整的 LBM 求解器：在边界条件之上提供障碍物、受力统计与输出能力。"""
 
-    # 计算阻力与升力
-    def drag_lift(self, obs, R_ref, U_ref, L_ref):
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        """
+        Args:
+            *args: 透传给 `Condition.__init__`。
+            **kwargs: 透传给 `Condition.__init__` 的网格与物理参数。
+        """
+        super().__init__(*args, **kwargs)
+
+    def drag_lift(
+        self, obs: int, R_ref: float, U_ref: float, L_ref: float
+    ) -> tuple[float, float]:
+        """计算指定障碍物上的无量纲阻力系数与升力系数。
+
+        Args:
+            obs: 障碍物在 `self.obstacles` 中的下标。
+            R_ref: 参考密度。
+            U_ref: 参考速度。
+            L_ref: 参考长度。
+
+        Returns:
+            二元组 `(Cx, Cy)`，分别为阻力系数与升力系数。
+        """
         Cx, Cy = nb_drag_lift(
             self.obstacles[obs].boundary,
             self.ns,
@@ -327,9 +374,14 @@ class Lattice(Condition):
 
         return Cx, Cy
 
-    # 处理阻力/升力缓冲区
-    def add_buff(self, Cx, Cy, it):
-        """将本次阻力/升力写入缓冲区并检查是否收敛。"""
+    def add_buff(self, Cx: float, Cy: float, it: int) -> None:
+        """将本次阻力/升力写入缓冲区、更新滑动平均并落盘。
+
+        Args:
+            Cx: 本步阻力系数。
+            Cy: 本步升力系数。
+            it: 当前迭代步号，用于换算成物理时间写入 `drag_lift` 文件。
+        """
         self.drag_buff.add(Cx)
         self.lift_buff.add(Cy)
 
@@ -345,8 +397,15 @@ class Lattice(Condition):
                 )
             )
 
-    # 障碍物半程反弹无滑移边界条件
-    def bounce_back_obstacle(self, obs):
+    def bounce_back_obstacle(self, obs: int) -> None:
+        """对指定障碍物施加半程反弹（halfway bounce-back）无滑移边界条件。
+
+        `self.IBB` 为 `True` 时使用插值反弹（IBB），否则使用标准反弹。
+        结果就地写入 `self.g`。
+
+        Args:
+            obs: 障碍物在 `self.obstacles` 中的下标。
+        """
         nb_bounce_back_obstacle(
             self.IBB,
             self.obstacles[obs].boundary,
@@ -695,17 +754,19 @@ class Lattice(Condition):
             for j in range(self.ny):
                 f.write("{} {}\n".format(j * self.dx, ux_error[j]))
 
-    def check_stop(self):
-        """检查停止条件（达到最大迭代步数或阻力/升力收敛）。"""
-        if self.stop == "it":
-            if self.it > self.it_max:
-                self.compute = True
-                logger.info("# Computation ended: it>it_max")
+    def check_stop(self) -> bool:
+        """检查停止条件（达到最大迭代步数或阻力/升力收敛）。
 
-        if self.stop == "obs":
-            if self.drag_buff.obs_cv and self.lift_buff.obs_cv:
-                self.compute = True
-                logger.info("# Computation ended: converged")
+        Returns:
+            是否还需要继续迭代：`True` 表示继续，`False` 表示已满足停止条件。
+        """
+        if self.stop == "it" and self.it > self.it_max:
+            self.compute = False
+            logger.info("# 计算结束：迭代步数超过 it_max")
+
+        if self.stop == "obs" and self.drag_buff.obs_cv and self.lift_buff.obs_cv:
+            self.compute = False
+            logger.info("# 计算结束：阻力/升力已收敛")
 
         self.it += 1
         return self.compute
@@ -717,6 +778,4 @@ class Lattice(Condition):
         if self.stop == "obs":
             str_d = "{:10.6f}".format(self.drag_buff.obs)
             str_l = "{:10.6f}".format(self.lift_buff.obs)
-            logger.info(
-                f"# it = {self.it}, avg drag ={str_d}, avg lift ={str_l}"
-            )
+            logger.info(f"# it = {self.it}, avg drag ={str_d}, avg lift ={str_l}")

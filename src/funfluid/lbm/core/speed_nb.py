@@ -4,10 +4,10 @@ from numba import jit
 
 @jit(nopython=True, parallel=True, cache=True)
 def nb_equilibrium(u, c, w, rho, g_eq):
-    """计算速度项 Compute velocity term"""
+    """计算 D2Q9 平衡态分布函数，就地写入 `g_eq`。"""
     v = 1.5 * (u[0, :, :] ** 2 + u[1, :, :] ** 2)
 
-    # 计算平衡 Compute equilibrium
+    # 计算平衡态
     for q in nb.prange(9):
         t = 3.0 * (u[0, :, :] * c[q, 0] + u[1, :, :] * c[q, 1])
         g_eq[q, :, :] = 1.0 + t + 0.5 * t**2 - v
@@ -16,12 +16,12 @@ def nb_equilibrium(u, c, w, rho, g_eq):
 
 @jit(nopython=True, parallel=True, cache=True)
 def nb_col_str(g, g_eq, g_up, om_p, om_m, c, ns, nx, ny, lx, ly):
-    """Collision and streaming"""
-    # Take care of q=0 first
+    """执行一步 TRT 碰撞与迁移，就地更新 `g`。"""
+    # 先处理 q=0 方向
     g_up[0, :, :] = g[0, :, :] - om_p * (g[0, :, :] - g_eq[0, :, :])
     g[0, :, :] = g_up[0, :, :]
 
-    # Collide other indices
+    # 再处理其余方向的碰撞
     for q in nb.prange(1, 9):
         qb = ns[q]
 
@@ -31,7 +31,7 @@ def nb_col_str(g, g_eq, g_up, om_p, om_m, c, ns, nx, ny, lx, ly):
             - om_m * 0.5 * (g[q, :, :] - g[qb, :, :] - g_eq[q, :, :] + g_eq[qb, :, :])
         )
 
-    # Stream
+    # 迁移
     g[1, 1:nx, :] = g_up[1, 0:lx, :]
     g[2, 0:lx, :] = g_up[2, 1:nx, :]
     g[3, :, 1:ny] = g_up[3, :, 0:ly]
@@ -44,12 +44,12 @@ def nb_col_str(g, g_eq, g_up, om_p, om_m, c, ns, nx, ny, lx, ly):
 
 @jit(nopython=True, parallel=True, cache=True)
 def nb_drag_lift(boundary, ns, c, g_up, g, R_ref, U_ref, L_ref):
-    """Compute drag and lift"""
-    # Initialize
+    """累加障碍物边界上的动量交换，返回无量纲阻力/升力系数。"""
+    # 初始化
     fx = 0.0
     fy = 0.0
 
-    # Loop over obstacle array
+    # 遍历障碍物边界点
     for k in nb.prange(len(boundary)):
         i = boundary[k, 0]
         j = boundary[k, 1]
@@ -62,7 +62,7 @@ def nb_drag_lift(boundary, ns, c, g_up, g, R_ref, U_ref, L_ref):
         fx += g0 * cx
         fy += g0 * cy
 
-    # Normalize coefficient
+    # 归一化为无量纲系数
     Cx = -2.0 * fx / (R_ref * L_ref * U_ref**2)
     Cy = -2.0 * fy / (R_ref * L_ref * U_ref**2)
 
@@ -71,15 +71,14 @@ def nb_drag_lift(boundary, ns, c, g_up, g, R_ref, U_ref, L_ref):
 
 @jit(nopython=True, parallel=True, cache=True)
 def nb_bounce_back_obstacle(IBB, boundary, ns, sc, obs_ibb, g_up, g, u, lattice):
-    """Obstacle halfway bounce-back no-slip b.c."""
-    # Interpolated BB
+    """障碍物半程反弹无滑移边界条件（`IBB` 为真时使用插值反弹）。"""
+    # 插值反弹（IBB）
     if IBB:
         for k in nb.prange(len(boundary)):
             i = boundary[k, 0]
             j = boundary[k, 1]
             q = boundary[k, 2]
             qb = ns[q]
-            c = sc[q, :]
             cb = sc[qb, :]
             im = i + cb[0]
             jm = j + cb[1]
@@ -101,23 +100,20 @@ def nb_bounce_back_obstacle(IBB, boundary, ns, sc, obs_ibb, g_up, g, u, lattice)
                     + ((1.0 - pp) / (1.0 + pp)) * g_up[qb, im, jm]
                 )
 
-    # Regular BB
+    # 标准半程反弹
     if not IBB:
         for k in nb.prange(len(boundary)):
             i = boundary[k, 0]
             j = boundary[k, 1]
             q = boundary[k, 2]
             qb = ns[q]
-            c = sc[q, :]
-            ii = i + c[0]
-            jj = j + c[1]
 
             g[qb, i, j] = g_up[q, i, j]
 
 
 @jit(nopython=True, cache=True)
 def nb_zou_he_left_wall_velocity(lx, ly, u, u_left, rho, g):
-    """Zou-He left wall velocity b.c."""
+    """Zou-He 左侧壁面速度边界条件。"""
     cst1 = 2.0 / 3.0
     cst2 = 1.0 / 6.0
     cst3 = 1.0 / 2.0
@@ -153,7 +149,7 @@ def nb_zou_he_left_wall_velocity(lx, ly, u, u_left, rho, g):
 
 @jit(nopython=True, cache=True)
 def nb_zou_he_right_wall_velocity(lx, ly, u, u_right, rho, g):
-    """Zou-He right wall velocity b.c."""
+    """Zou-He 右侧壁面速度边界条件。"""
     cst1 = 2.0 / 3.0
     cst2 = 1.0 / 6.0
     cst3 = 1.0 / 2.0
@@ -189,7 +185,7 @@ def nb_zou_he_right_wall_velocity(lx, ly, u, u_right, rho, g):
 
 @jit(nopython=True, cache=True)
 def nb_zou_he_right_wall_pressure(lx, ly, u, rho_right, u_right, rho, g):
-    """Zou-He right wall pressure b.c."""
+    """Zou-He 右侧壁面压力（密度）边界条件。"""
     cst1 = 2.0 / 3.0
     cst2 = 1.0 / 6.0
     cst3 = 1.0 / 2.0
@@ -225,7 +221,7 @@ def nb_zou_he_right_wall_pressure(lx, ly, u, rho_right, u_right, rho, g):
 
 @jit(nopython=True, cache=True)
 def nb_zou_he_top_wall_velocity(lx, ly, u, u_top, rho, g):
-    """Zou-He no-slip top wall velocity b.c."""
+    """Zou-He 顶部无滑移壁面速度边界条件。"""
     cst1 = 2.0 / 3.0
     cst2 = 1.0 / 6.0
     cst3 = 1.0 / 2.0
@@ -233,13 +229,15 @@ def nb_zou_he_top_wall_velocity(lx, ly, u, u_top, rho, g):
     u[0, :, ly] = u_top[0, :]
     u[1, :, ly] = u_top[1, :]
 
-    rho[:, 0] = (
-        g[0, :, 0]
-        + g[1, :, 0]
-        + g[2, :, 0]
-        + 2.0 * g[3, :, 0]
-        + 2.0 * g[5, :, 0]
-        + 2.0 * g[7, :, 0]
+    # 顶壁位于 j = ly，这里的密度与各分布函数都必须取 ly 行；
+    # 取 0 行会把顶壁密度写到底壁上，同时让下面用到的 rho[:, ly] 保持陈旧值。
+    rho[:, ly] = (
+        g[0, :, ly]
+        + g[1, :, ly]
+        + g[2, :, ly]
+        + 2.0 * g[3, :, ly]
+        + 2.0 * g[5, :, ly]
+        + 2.0 * g[7, :, ly]
     ) / (1.0 + u[1, :, ly])
 
     g[4, :, ly] = g[3, :, ly] - cst1 * rho[:, ly] * u[1, :, ly]
@@ -261,7 +259,7 @@ def nb_zou_he_top_wall_velocity(lx, ly, u, u_top, rho, g):
 
 @jit(nopython=True, cache=True)
 def nb_zou_he_bottom_wall_velocity(lx, ly, u, u_bot, rho, g):
-    """Zou-He no-slip bottom wall velocity b.c."""
+    """Zou-He 底部无滑移壁面速度边界条件。"""
     cst1 = 2.0 / 3.0
     cst2 = 1.0 / 6.0
     cst3 = 1.0 / 2.0
@@ -297,7 +295,7 @@ def nb_zou_he_bottom_wall_velocity(lx, ly, u, u_bot, rho, g):
 
 @jit(nopython=True, cache=True)
 def nb_zou_he_bottom_left_corner_velocity(lx, ly, u, rho, g):
-    """Zou-He no-slip bottom left corner velocity b.c."""
+    """Zou-He 左下角无滑移速度边界条件。"""
     u[0, 0, 0] = u[0, 1, 0]
     u[1, 0, 0] = u[1, 1, 0]
 
@@ -331,7 +329,7 @@ def nb_zou_he_bottom_left_corner_velocity(lx, ly, u, rho, g):
 
 @jit(nopython=True, cache=True)
 def nb_zou_he_top_left_corner_velocity(lx, ly, u, rho, g):
-    """Zou-He no-slip top left corner velocity b.c."""
+    """Zou-He 左上角无滑移速度边界条件。"""
     u[0, 0, ly] = u[0, 1, ly]
     u[1, 0, ly] = u[1, 1, ly]
 
@@ -365,7 +363,7 @@ def nb_zou_he_top_left_corner_velocity(lx, ly, u, rho, g):
 
 @jit(nopython=True, cache=True)
 def nb_zou_he_top_right_corner_velocity(lx, ly, u, rho, g):
-    """Zou-He no-slip top right corner velocity b.c."""
+    """Zou-He 右上角无滑移速度边界条件。"""
     u[0, lx, ly] = u[0, lx - 1, ly]
     u[1, lx, ly] = u[1, lx - 1, ly]
 
@@ -399,7 +397,7 @@ def nb_zou_he_top_right_corner_velocity(lx, ly, u, rho, g):
 
 @jit(nopython=True, cache=True)
 def nb_zou_he_bottom_right_corner_velocity(lx, ly, u, rho, g):
-    """Zou-He no-slip bottom right corner velocity b.c."""
+    """Zou-He 右下角无滑移速度边界条件。"""
     u[0, lx, 0] = u[0, lx - 1, 0]
     u[1, lx, 0] = u[1, lx - 1, 0]
 

@@ -2,7 +2,8 @@ import math
 import time
 
 import numpy as np
-from funfluid.lbm import Lattice, Shape
+from funfluid.lbm import Lattice
+from funfluid.lbm.core.shape import generate_shape
 
 ###############################################
 # LBM poiseuille with obstacle

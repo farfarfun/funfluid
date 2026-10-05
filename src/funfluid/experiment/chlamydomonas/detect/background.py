@@ -44,23 +44,34 @@ class BackGround:
 
 class BackGroundDetect(BaseCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
-        super(BackGroundDetect, self).__init__(
-            filepath=f"{config.cache_dir}/detect_backgrounds.pkl", *args, **kwargs
+        super().__init__(
+            *args, filepath=f"{config.cache_dir}/detect_backgrounds.pkl", **kwargs
         )
         self.config = config
         self.background_list: list[BackGround] = []
 
     def process_background_nearest(
         self, image, debug=False, *args, **kwargs
-    ) -> BackGround:
-        back = None
-        min_score = 9999999999990
+    ) -> BackGround | None:
+        """返回与给定帧差异最小（score 最小）的背景。
+
+        Args:
+            image: 当前视频帧。
+            debug: 预留的调试开关，当前不影响行为。
+
+        Returns:
+            差异最小的 `BackGround`；背景列表为空时返回 `None`。
+        """
+        # 注意：循环变量与结果变量必须分开，否则返回的是最后一个遍历到的背景，
+        # 而不是 score 最小的那个。
+        nearest: BackGround | None = None
+        min_score = float("inf")
         for back in self.background_list[::-1]:
             score = back.score(image)
             if score < min_score:
                 min_score = score
-                back = back
-        return back
+                nearest = back
+        return nearest
 
     def process_background_image(
         self, step, image, debug=False, *args, **kwargs

@@ -1,7 +1,8 @@
 import math
 import time
 
-from funfluid.lbm import Lattice, Shape
+import numpy as np
+from funfluid.lbm import Lattice
 from funfluid.lbm.core.shape import generate_shape
 
 ###############################################

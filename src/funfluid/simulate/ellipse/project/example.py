@@ -11,11 +11,19 @@ class Project(BaseProject):
         for index, file in enumerate(self.orientation_files):
             if index == 0:
                 ellipse = EllipseTrack(
-                    a=10, b=6, df=self._load(file, 0, type=1), color="r", line_width=1
+                    a=10,
+                    b=6,
+                    df=self._load(file, 0, angle_unit=1),
+                    color="r",
+                    line_width=1,
                 )
             elif index == 1:
                 ellipse = EllipseTrack(
-                    a=10, b=6, df=self._load(file, 0, type=1), color="b", line_width=1
+                    a=10,
+                    b=6,
+                    df=self._load(file, 0, angle_unit=1),
+                    color="b",
+                    line_width=1,
                 )
             else:
                 continue
