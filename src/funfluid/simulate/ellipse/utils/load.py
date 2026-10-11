@@ -1,7 +1,21 @@
+import os
+
 import pandas as pd
 
 
-def load_v(path):
+def load_v(path: str | os.PathLike[str]) -> pd.DataFrame:
+    """读取 Tecplot 的结构化速度场数据文件。
+
+    Args:
+        path: Tecplot 数据文件路径。
+
+    Returns:
+        以文件变量名为列的数据框，坐标列 ``x``、``y`` 转为整数。
+
+    Raises:
+        FileNotFoundError: 文件不存在时抛出。
+        KeyError: 文件缺少 ``I``、``J`` 或坐标列时抛出。
+    """
     with open(path) as fr:
         row1 = fr.readline()
         row2 = fr.readline()
@@ -23,7 +37,19 @@ def load_v(path):
     return df
 
 
-def load_p(path):
+def load_p(path: str | os.PathLike[str]) -> pd.DataFrame:
+    """读取 Tecplot 的点数据文件。
+
+    Args:
+        path: Tecplot 数据文件路径。
+
+    Returns:
+        以文件变量名为列的数据框。
+
+    Raises:
+        FileNotFoundError: 文件不存在时抛出。
+        KeyError: 文件缺少 ``E`` 参数时抛出。
+    """
     with open(path) as fr:
         row1 = fr.readline()
         row2 = fr.readline()

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from funfluid.ellipse.utils.largs_plot import largs_plot_speed
+from funfluid.simulate.ellipse.utils.largs_plot import largs_plot_speed
 
 data3 = """
 u_theta -0.0100922 0 19.4988 609.95 0.00669423 0.00134881
