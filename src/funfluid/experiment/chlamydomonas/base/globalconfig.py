@@ -57,7 +57,8 @@ class VideoSplit:
 
         必须在 `parse_path` 成功返回之后调用，否则 `video_paths` 为空。
         """
-        self.config_path = f"{os.path.splitext(self.video_paths[0])}.json"
+        path_without_suffix, _ = os.path.splitext(self.video_paths[0])
+        self.config_path = f"{path_without_suffix}.json"
 
     def to_json(self) -> dict:
         """导出为可序列化的字典。

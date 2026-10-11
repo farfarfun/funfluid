@@ -230,6 +230,62 @@ def test_video_split_to_json_round_trip():
     assert data["video_name"] == "sample"
     assert data["video_path"] == "/data/videos/sample.mp4"
     assert data["cache_dir"] == "/data/videos/sample"
+    assert data["config_path"] == "/data/videos/sample.json"
+
+
+def test_video_base_loads_adjacent_json_config(tmp_path):
+    pytest.importorskip("cv2", reason="VideoBase 所在模块依赖 funfluid[video] extra")
+    from funfluid.experiment.chlamydomonas.base.base import VideoBase
+    from funfluid.experiment.chlamydomonas.base.globalconfig import VideoSplit
+
+    video_path = tmp_path / "sample.mp4"
+    video_path.write_bytes(b"")
+    config_path = tmp_path / "sample.json"
+    config_path.write_text('{"startSecond": 12, "endSecond": 34}', encoding="utf-8")
+    split = VideoSplit()
+    assert split.parse_path(str(video_path))
+    split.parse_other()
+
+    config = VideoBase(split)
+
+    assert split.config_path == str(config_path)
+    assert config.start_second == 12
+    assert config.end_second == 34
+
+
+# ---------------------------------------------------------------------------
+# 4a. funfluid.experiment.chlamydomonas.utils
+# ---------------------------------------------------------------------------
+
+
+def test_cul_msd_calculates_linear_trajectory_and_handles_boundary_inputs():
+    import pandas as pd
+
+    from funfluid.experiment.chlamydomonas.utils import cul_msd
+
+    trajectory = pd.DataFrame({"t": [0, 1, 2], "x": [0, 1, 2], "y": [0, 0, 0]})
+    result = cul_msd(trajectory)
+
+    assert result["t"].tolist() == [1, 2]
+    assert result["msd"].tolist() == pytest.approx([1, 4])
+    assert result["v"].tolist() == pytest.approx([1, 1])
+    assert list(cul_msd(trajectory.iloc[:1]).columns) == ["t", "msd", "v"]
+    with pytest.raises(KeyError, match="x"):
+        cul_msd(trajectory.drop(columns="x"))
+
+
+def test_cul_phr_does_not_mutate_input_and_validates_ring_width():
+    import pandas as pd
+
+    from funfluid.experiment.chlamydomonas.utils.phr import cul_phr
+
+    points = pd.DataFrame({"x": [1.0, 0.0], "y": [0.0, 1.0]})
+    result = cul_phr(points, dr=1.0)
+
+    assert "r" not in points.columns
+    assert result["phr"].sum() == pytest.approx(1.0)
+    with pytest.raises(ValueError, match="dr"):
+        cul_phr(points, dr=0)
 
 
 def test_contain_detect_find_contain_missing_raises_lookup_error():
@@ -485,6 +541,30 @@ def test_read_tecplot_point_parses_minimal_point_file(tmp_path):
     assert list(df.columns) == ['"x"', ' "y"']
     assert len(df) == 3
     assert df['"x"'].tolist() == [0.0, 1.0, 0.0]
+
+
+def test_ellipse_tecplot_loaders_parse_minimal_files_and_reject_missing_paths(tmp_path):
+    from funfluid.simulate.ellipse.utils import load_p, load_v
+
+    velocity_path = tmp_path / "velocity.dat"
+    velocity_path.write_text(
+        'VARIABLES = "x","y","u"\nzone I=2, J=1\n0 0 1.5\n1 0 2.5\n',
+        encoding="utf-8",
+    )
+    velocity = load_v(velocity_path)
+    assert velocity.to_dict("list") == {"x": [0, 1], "y": [0, 0], "u": [1.5, 2.5]}
+
+    point_path = tmp_path / "points.dat"
+    point_path.write_text(
+        'VARIABLES = "x","y"\nE=1,F=FEPOINT\n0 0\n1 1\n', encoding="utf-8"
+    )
+    points = load_p(point_path)
+    assert points.to_dict("list") == {"x": [0, 1], "y": [0, 1]}
+
+    with pytest.raises(FileNotFoundError):
+        load_v(tmp_path / "missing.dat")
+    with pytest.raises(FileNotFoundError):
+        load_p(tmp_path / "missing.dat")
 
 
 # ---------------------------------------------------------------------------
